@@ -102,7 +102,6 @@ const searchContent = (content, source, href, url) => {
 			data.cleanreads_settings.POSITIVE_SEARCH_TERMS.forEach(term => {
 				let contentMatch = matchTerm(term, source === SOURCES.SHELF ? content.replaceAll(/\W/g, ' ') : content);
 				if (!!contentMatch) {
-					console.log(contentMatch);
 					const result = { term: term, source: source, content: content, index: contentMatch.index + contentMatch[1].length + contentMatch[2].length, positive: true };
 					result.matchHTML = matchHTML(contentMatch[3], content, result.index, data.cleanreads_settings.SNIPPET_HALF_LENGTH, true, source, href, url);
 					results.push(result);

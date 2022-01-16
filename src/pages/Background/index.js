@@ -1,7 +1,16 @@
+import { INITIAL_SETTINGS } from "../Common/useSettings";
 import { getBook } from "./goodreads";
 
 console.log('Cleanreads background service worker');
 
+chrome.runtime.onInstalled.addListener(() => {
+	console.log("Installed")
+	chrome.storage.local.get(['cleanreads_settings'], (data) => {
+		if (!data.cleanreads_settings) {
+			chrome.storage.local.set({ 'cleanreads_settings': INITIAL_SETTINGS });
+		} 
+	});
+})
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.method === 'get_book') {

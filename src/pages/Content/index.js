@@ -10,12 +10,6 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 			return;
 		}
 
-		const bookElements = [...document.querySelectorAll('a')].filter(x => x.href.match('goodreads.com/book/show'));
-		const bookIds = bookElements.map(x => x.href.match(/show\/(\d*)/)[1]).concat([currentId]).filter((x, i, arr) => x && arr.indexOf(x) === i);
-		console.log(bookIds);
-
-		console.log(`Found ${bookIds.length} books to review`);
-
 		// Show load button / directly load ratings for book tables
 		[...document.querySelectorAll('tr[itemtype="http://schema.org/Book"]')].forEach(book => {
 			const bookId = book.querySelector('a').href.match(/show\/(\d*)/)[1];
