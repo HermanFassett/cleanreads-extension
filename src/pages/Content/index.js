@@ -15,7 +15,10 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 
 		// Show load button / directly load ratings for book tables
 		[...document.querySelectorAll('tr[itemtype="http://schema.org/Book"], .leftContainer .elementList')].forEach(book => {
-			const bookId = book.querySelector('a').href.match(/show\/(\d*)/)[1];
+			const match = book.querySelector('a').href.match(/book\/show\/(\d*)/);
+			if (!match) return;
+
+			const bookId = match[1];
 			const shelf = book.querySelector('.right');
 			if (shelf) {
 				book.querySelector('.left').style.width = '65%';
