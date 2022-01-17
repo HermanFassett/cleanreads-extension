@@ -105,9 +105,9 @@ const matchHTML = (term : any, content : string, index : number, snippetLength :
 	switch(source) {
 		case SOURCES.DESCRIPTION:
 		case SOURCES.REVIEW:
-			html += `...${content.slice(index - snippetLength, index)}<b class="content${positive ? '' : 'Not'}Clean">${
-				content.substr(index, term.length)
-			}</b>${content.slice(index + term.length, index + snippetLength)}...`
+			html += `...${content.slice(Math.max(0, index - snippetLength), index)}<b class="content${positive ? '' : 'Not'}Clean">${
+				content.slice(index, index + term.length)
+			}</b>${content.slice(index + term.length, index + term.length + snippetLength)}...`
 			break;
 		case SOURCES.GENRE:
 			html += `<b><a href=${url} class="content${positive ? '' : 'Not'}Clean">${content}</a></b>`

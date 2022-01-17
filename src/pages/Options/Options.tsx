@@ -151,7 +151,7 @@ const Options: React.FC<Props> = ({title} : Props) => {
                     <button className='cr-button' onClick={resetCleanBooks}>Empty List</button>
                 </div>
                 <h2>Snippet length:</h2>
-                <input type='number' value={settings.SNIPPET_HALF_LENGTH} min='0' onChange={(e) => setSettings({...settings, SNIPPET_HALF_LENGTH: e.target.value })} />
+                <input type='number' value={settings.SNIPPET_HALF_LENGTH} min='0' onChange={(e) => setSettings({...settings, SNIPPET_HALF_LENGTH: parseInt(e.target.value) })} />
             </div>
         </div>
     );
