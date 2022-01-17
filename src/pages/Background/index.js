@@ -1,5 +1,5 @@
 import { cleanReadRating, INITIAL_SETTINGS } from "../Common/cleanreads";
-import { getBook } from "./goodreads";
+import { getBook, getGroupShelf } from "./goodreads";
 
 console.log('Cleanreads background service worker');
 
@@ -27,6 +27,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			else {
 				console.log('Used cache for get_book', bookId);
 				cleanReadRating(data[`goodreads_${bookId}`]).then(response => sendResponse(response));
+			}
+		});
+	}
+	else if (request.method === 'get_group_shelf') {
+		const shelfId = request.data;
+		const key = `goodreads_group_shelf_${shelfId}`;
+		chrome.storage.local.get([key], data => {
+			if (!data[key] || !data[key].timestamp || !data[key].title) {
+				console.log('Loading fresh data for get_group_shelf', shelfId);
+				getGroupShelf(shelfId).then(shelf => {
+					console.log('Loaded data for get_group_shelf', shelfId);
+					chrome.storage.local.set({ [key]: shelf });
+					sendResponse(shelf);
+				});
+			}
+			else {
+				console.log('Used cache for get_group_shelf', shelfId);
+				sendResponse(data[key]);
 			}
 		});
 	}

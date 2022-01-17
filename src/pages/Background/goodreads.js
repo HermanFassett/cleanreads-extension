@@ -7,7 +7,7 @@ export const getBook = (id) => {
 	return new Promise((resolve, reject) => {
 		fetch(bookUrl).then(response => response.text()).then((html) => {
 			const $ = cheerio.load(html);
-			const bookData = { timestamp: +(new Date()) };
+			const bookData = { timestamp: +(new Date()), id };
 			bookData.title = $('#bookTitle').text().trim();
 			bookData.originalTitle = $('#bookDataBox .clearFloats:contains("Original Title") .infoBoxRowItem').text();
 			bookData.isbn = $('#bookDataBox .clearFloats:contains("ISBN") .infoBoxRowItem').text().trim().split('\n')[0];
@@ -65,4 +65,27 @@ export const getBook = (id) => {
 			resolve(bookData);
 		}).catch(ex => reject(ex));
 	});		
+};
+
+// Scrape all books from group shelf
+export const getGroupShelf = (id, page, books) => {
+	if (!page) page = 1;
+	if (!books) books = [];
+	const shelfUrl = `https://www.goodreads.com/group/bookshelf/${id}?per_page=100&page=${page}&utf8=✓&view=covers`;
+	return new Promise((resolve, reject) => {
+		fetch(shelfUrl).then(response => response.text()).then(async (html) => {
+			const $ = cheerio.load(html);
+			const pageBooks = $('.rightContainer div > a').toArray().map(x => ($(x).attr('href').match(/show\/(\d*)/) || [])[1]);
+			if (pageBooks.length) {
+				setTimeout(async () => {
+					resolve(await getGroupShelf(id, ++page, books.concat(pageBooks)));
+				}, 1000);
+			}
+			else {
+				const title = $('#pageHeader a').attr('title');
+				const data = { timestamp: +(new Date()), id, books: books.filter((x, i, arr) => x && arr.indexOf(x) === i), title };
+				resolve(data);
+			}
+		}).catch(ex => reject(ex));
+	});
 };

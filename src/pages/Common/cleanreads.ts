@@ -21,33 +21,39 @@ export const INITIAL_SETTINGS = {
     ],
     SNIPPET_HALF_LENGTH: 65,
     ENABLED: true,
+    CLEAN_BOOKS: [],
 }
 
 export const useSettings = createChromeStorageStateHookLocal('cleanreads_settings', INITIAL_SETTINGS);
 
 // Get Cleanread rating for given book
 export const cleanReadRating = async (book: any) => {
+    // Load settings
+    const data = await chrome.storage.local.get(['cleanreads_settings']);
+    const settings = data.cleanreads_settings;
+
 	// Description
-	let results : Array<any> = await searchContent(book.description, SOURCES.DESCRIPTION);
+	let results : Array<any> = searchContent(book.description, SOURCES.DESCRIPTION, settings);
 	for (let i = 0; i < book.genres.length; i++) {
 		const genre = book.genres[i];
-		results = results.concat(await searchContent(genre.name, SOURCES.GENRE, undefined, genre.url))
+		results = results.concat(searchContent(genre.name, SOURCES.GENRE, settings, undefined, genre.url))
 	}
 	// Shelves
 	for (let i = 0; i < book.reviews.length; i++) {
 		const review = book.reviews[i];
 		for (let j = 0; j < review.shelves.length; j++) {
 			const shelf = review.shelves[j];
-			results = results.concat(await searchContent(shelf.name, SOURCES.SHELF, review.id, review.url));
+			results = results.concat(searchContent(shelf.name, SOURCES.SHELF, settings, review.id, review.url));
 		}
 	};
 	// Reviews
 	for (let i = 0; i < book.reviews.length; i++) {
 		const review = book.reviews[i];
-		results = results.concat(await searchContent(review.text, SOURCES.REVIEW, review.id, review.url));
+		results = results.concat(searchContent(review.text, SOURCES.REVIEW, settings, review.id, review.url));
 	};
 	// Return rating object with all data
 	book.cleanReads = {
+        cleanRead: settings.CLEAN_BOOKS.indexOf(book.id) > -1,
 		positive: results.filter(x => x.positive).length,
 		negative: results.filter(x => !x.positive).length,
 		rating: `${results.filter(x => x.positive).length}/${results.filter(x => !x.positive).length}`,
@@ -57,44 +63,40 @@ export const cleanReadRating = async (book: any) => {
 };
 
 // Search content for positive/negative ratings
-const searchContent = (content : string, source : number, href ?: string, url ?: string) => {
-	const results : Array<any> = [];
-	return new Promise<Array<any>>((resolve, reject) => {
-		chrome.storage.local.get(['cleanreads_settings'], data => {
-			data.cleanreads_settings.POSITIVE_SEARCH_TERMS.forEach((term : any) => {
-				let contentMatch = matchTerm(term, source === SOURCES.SHELF ? content.replaceAll(/\W/g, ' ') : content);
-				if (!!contentMatch) {
-					const result = { 
-                        term,
-                        source,
-                        content,
-                        index: (<number>contentMatch?.index) + contentMatch[1].length + contentMatch[2].length,
-                        positive: true,
-                        matchHTML: ''
-                    };
-					result.matchHTML = matchHTML(contentMatch[3], content, result.index, data.cleanreads_settings.SNIPPET_HALF_LENGTH, true, source, href, url);
-					results.push(result);
-				}
-			});
+const searchContent = (content : string, source : number, settings : any, href ?: string, url ?: string) => {
+    const results : Array<any> = [];
+    settings.POSITIVE_SEARCH_TERMS.forEach((term : any) => {
+        let contentMatch = matchTerm(term, source === SOURCES.SHELF ? content.replaceAll(/\W/g, ' ') : content);
+        if (!!contentMatch) {
+            const result = { 
+                term,
+                source,
+                content,
+                index: (<number>contentMatch?.index) + contentMatch[1].length + contentMatch[2].length,
+                positive: true,
+                matchHTML: ''
+            };
+            result.matchHTML = matchHTML(contentMatch[3], content, result.index, settings.SNIPPET_HALF_LENGTH, true, source, href, url);
+            results.push(result);
+        }
+    });
 
-			data.cleanreads_settings.NEGATIVE_SEARCH_TERMS.forEach((term : any) => {
-				let contentMatch = matchTerm(term, source === SOURCES.SHELF ? content.replaceAll(/\W/g, ' ') : content);
-				if (!!contentMatch) {
-					const result = {
-                        term,
-                        source,
-                        content,
-                        index: (<number>contentMatch?.index) + contentMatch[1].length + contentMatch[2].length,
-                        positive: false,
-                        matchHTML: ''
-                    };
-					result.matchHTML = matchHTML(contentMatch[3], content, result.index, data.cleanreads_settings.SNIPPET_HALF_LENGTH, false, source, href, url);
-					results.push(result);
-				}
-			});
-			resolve(results);
-		});
-	});
+    settings.NEGATIVE_SEARCH_TERMS.forEach((term : any) => {
+        let contentMatch = matchTerm(term, source === SOURCES.SHELF ? content.replaceAll(/\W/g, ' ') : content);
+        if (!!contentMatch) {
+            const result = {
+                term,
+                source,
+                content,
+                index: (<number>contentMatch?.index) + contentMatch[1].length + contentMatch[2].length,
+                positive: false,
+                matchHTML: ''
+            };
+            result.matchHTML = matchHTML(contentMatch[3], content, result.index, settings.SNIPPET_HALF_LENGTH, false, source, href, url);
+            results.push(result);
+        }
+    });
+    return results;
 }
 
 // Format result in HTML to show in details page

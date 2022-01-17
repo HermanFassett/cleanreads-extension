@@ -22,40 +22,46 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 			td.appendChild(label);
 
 			function setRating(response, target) {
-				const positive = response.cleanReads ? response.cleanReads.positive : 0;
-				const negative = response.cleanReads ? response.cleanReads.negative : 0;
-				const percent = negative > 0 ? Math.min(100, Math.round(positive / (positive + negative) * 100)) : 100;
+				const {positive, negative, percent} = getRating(response.cleanReads);
 				console.log('Cleanreads rating:', positive, 'positive,', negative, 'negative,', percent + '%');
 
-				if (negative > 0 || positive > 0) {
+				if (percent !== null) {
 					target.outerHTML = `<div class='progress-pie-color' data-value='${percent}'></div>`;
 				} else {
 					target.outerHTML = `<span class='u-defaultType'>No rating</span>`
 				}
 			}
 			
-			chrome.storage.local.get([`goodreads_${bookId}`], cache => {
-				const data = cache[`goodreads_${bookId}`];
-				if (!data || !data.timestamp || !data.title) {
-					const button = document.createElement('button');
-					button.className = 'gr-button';
-					button.innerText = 'Load';
-					button.onclick = function(e) {
-						e.target.disabled = true;
-						e.target.innerText = 'Loading...';
-						chrome.runtime.sendMessage({method: "get_book", data: bookId }, (response) => {
-							setRating(response, e.target);
-						});
-					}
-					td.appendChild(button);
-				}
-				else {
-					const div = document.createElement('div');
-					td.appendChild(div);
-					cleanReadRating(data).then(response => setRating(response, div));
-				}
+			if (data.cleanreads_settings.CLEAN_BOOKS.indexOf(bookId) > -1) {
+				const div = document.createElement('div');
+				td.appendChild(div);
+				setRating({ cleanReads: { cleanRead: true, positive: 0, negative: 0 }}, div);
 				book.appendChild(td);
-			});
+			}
+			else {
+				chrome.storage.local.get([`goodreads_${bookId}`], cache => {
+					const data = cache[`goodreads_${bookId}`];
+					if (!data || !data.timestamp || !data.title) {
+						const button = document.createElement('button');
+						button.className = 'gr-button';
+						button.innerText = 'Load';
+						button.onclick = function(e) {
+							e.target.disabled = true;
+							e.target.innerText = 'Loading...';
+							chrome.runtime.sendMessage({method: "get_book", data: bookId }, (response) => {
+								setRating(response, e.target);
+							});
+						}
+						td.appendChild(button);
+					}
+					else {
+						const div = document.createElement('div');
+						td.appendChild(div);
+						cleanReadRating(data).then(response => setRating(response, div));
+					}
+					book.appendChild(td);
+				});
+			}
 		});
 
 		// Load full rating on book page
@@ -70,18 +76,20 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 
 			chrome.runtime.sendMessage({method: "get_book", data: currentId }, (response) => {
 				console.log(response);
-				const positive = response.cleanReads ? response.cleanReads.positive : 0;
-				const negative = response.cleanReads ? response.cleanReads.negative : 0;
-				const percent = negative > 0 ? Math.min(100, Math.round(positive / (positive + negative) * 100)) : 100;
+				const {positive, negative, percent} = getRating(response.cleanReads);
 				const container = document.querySelector('#cleanReadsRating');
 
 				container.innerHTML = `
 					<h2 class='gr-h1 u-bottomGrayBorder' style='text-align:center'>Cleanreads Rating</h2>
-					${ negative > 0 || positive > 0 ?
+					${ percent !== null ?
 						`<div class='progress-pie-color large center' data-value='${percent}'></div>` :
 						`<h2 class='uitext greyText' style='text-align:center'>No rating</h2>`
 					}
 				`;
+
+				if (response.cleanReads.cleanRead) {
+					container.innerHTML += '<h2 class="uitext contentClean">Found in Clean Book List</h2>'
+				}
 
 				let lastSource = -1;
 				response.cleanReads.data.sort((a, b) => a.source - b.source || b.positive - a.positive).forEach(res => {
@@ -110,3 +118,20 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 		}
 	}
 });
+
+// Get positives, negatives, and percent of rating
+function getRating(cleanReads) {
+	const positive = cleanReads ? cleanReads.positive : 0;
+	const negative = cleanReads ? cleanReads.negative : 0;
+	let percent = 0;
+	if (cleanReads.cleanRead) {
+		percent = 100;
+	}
+	else if (negative === 0 && positive === 0) {
+		percent = null;
+	}
+	else {
+		percent = negative > 0 ? Math.min(100, Math.round(positive / (positive + negative) * 100)) : 100
+	}
+	return { positive, negative, percent };
+}

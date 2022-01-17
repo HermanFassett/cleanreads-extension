@@ -1,9 +1,13 @@
 .OptionsContainer {
   width: 100%;
-  font-size: 2rem;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.OptionsContainer div {
+  margin-bottom: 5px;
 }
 
 .cleanReadsSettings {
