@@ -64,6 +64,15 @@ const Options: React.FC<Props> = ({title} : Props) => {
         });
     }
 
+    function loadList() {
+        setLoadingShelf(true);
+        chrome.runtime.sendMessage({ method: 'get_list', data: shelves }, (response) => {
+            const books = settings.CLEAN_BOOKS.concat(response.books).filter((x: any, i : number, arr : Array<any>) => x && arr.indexOf(x) === i);
+            setSettings({...settings, 'CLEAN_BOOKS': books });
+            setLoadingShelf(false);
+        })
+    }
+
     function importCleanBooks(files : Array<File>) {
         let loaded = 0;
         let books : any = [];
@@ -130,9 +139,12 @@ const Options: React.FC<Props> = ({title} : Props) => {
                 <h2>Clean Book List:</h2>
                 <div>
                     <input name='groupShelf' type='text' value={shelves} onChange={(e) => setShelves(e.target.value)} />
+                    <button className='cr-button' onClick={loadList} disabled={loadingShelf}>{loadingShelf ? 'Loading...' : 'Load List'}</button>
                     <button className='cr-button' onClick={loadGroupShelf} disabled={loadingShelf}>{loadingShelf ? 'Loading...' : 'Load Group Shelf'}</button>
                 </div>
-                <b>Loaded books: </b>{settings.CLEAN_BOOKS.length}
+                <p><i>Recommended lists: <a href='https://www.goodreads.com/list/show/3674' target='_blank'>3674</a></i></p>
+                <p><i>Recommended group shelves: <a href='https://www.goodreads.com/group/bookshelf/5989' target='_blank'>5989</a></i></p>
+                <p><b>Loaded books: </b>{settings.CLEAN_BOOKS.length}</p>
                 <div>
                     <Files onChange={importCleanBooks} multiple accepts={['.json']}><button className='cr-button'>Import List</button></Files>
                     <a className='cr-button' download='cleanreads.json' href={`data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(settings.CLEAN_BOOKS))}`}>Download List</a>

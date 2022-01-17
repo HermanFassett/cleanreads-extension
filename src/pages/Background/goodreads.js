@@ -89,3 +89,33 @@ export const getGroupShelf = (id, page, books) => {
 		}).catch(ex => reject(ex));
 	});
 };
+
+// Scrape all books from list
+export const getList = (id, page, books) => {
+	if (!page) page = 1;
+	if (!books) books = [];
+	const listUrl = `https://www.goodreads.com/list/show/${id}?page=${page}`;
+	return new Promise((resolve, reject) => {
+		fetch(listUrl).then(response => response.text()).then(async (html) => {
+			const $ = cheerio.load(html);
+			const pageBooks = $('tr[itemtype="http://schema.org/Book"] div.u-anchorTarget').toArray().map(x => $(x).attr('id'));
+			if (pageBooks.length) {
+				setTimeout(async () => {
+					resolve(await getList(id, ++page, books.concat(pageBooks)));
+				}, 1000);
+			}
+			else {
+				const title = $('.leftContainer h1').text();
+				const description = $('.leftContainer .mediumText').text();
+				const data = { 
+					timestamp: +(new Date()),
+					id,
+					books: books.filter((x, i, arr) => x && arr.indexOf(x) === i),
+					title,
+					description,
+				};
+				resolve(data);
+			}
+		}).catch(ex => reject(ex));
+	});
+};
