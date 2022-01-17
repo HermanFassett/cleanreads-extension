@@ -14,10 +14,20 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 		}
 
 		// Show load button / directly load ratings for book tables
-		[...document.querySelectorAll('tr[itemtype="http://schema.org/Book"]')].forEach(book => {
+		[...document.querySelectorAll('tr[itemtype="http://schema.org/Book"], .leftContainer .elementList')].forEach(book => {
 			const bookId = book.querySelector('a').href.match(/show\/(\d*)/)[1];
+			const shelf = book.querySelector('.right');
+			if (shelf) {
+				book.querySelector('.left').style.width = '65%';
+				book = book.querySelector('.right');
+				book.children[0].style.float = 'left';
+				book.children[0].style.margin = '0 10px 0 0';
+			}
 
-			const td = document.createElement('td', { width: "100px" });
+			const td = document.createElement('td', { width: '100px', class: 'uirating' });
+			if (shelf) {
+				td.style.float = 'right';
+			}
 			const label = document.createElement('div', { class: 'uitext greyText' });
 			label.innerText = 'Cleanreads';
 			td.appendChild(label);
