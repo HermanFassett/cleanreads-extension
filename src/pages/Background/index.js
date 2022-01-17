@@ -1,4 +1,4 @@
-import { INITIAL_SETTINGS } from "../Common/useSettings";
+import { cleanReadRating, INITIAL_SETTINGS } from "../Common/cleanreads";
 import { getBook } from "./goodreads";
 
 console.log('Cleanreads background service worker');
@@ -21,12 +21,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				getBook(bookId).then(book => {
 					console.log('Loaded data for get_book', bookId);
 					chrome.storage.local.set({ [`goodreads_${bookId}`]: book });
-					sendResponse(book);
+					cleanReadRating(book).then(response => sendResponse(response));
 				});
 			}
 			else {
 				console.log('Used cache for get_book', bookId);
-				sendResponse(data[`goodreads_${bookId}`]);
+				cleanReadRating(data[`goodreads_${bookId}`]).then(response => sendResponse(response));
 			}
 		});
 	}

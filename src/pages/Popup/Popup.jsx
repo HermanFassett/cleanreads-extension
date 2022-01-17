@@ -2,7 +2,7 @@ import React from 'react';
 import './Popup.css';
 import 'react-toggle/style.css';
 import Toggle from 'react-toggle';
-import { useSettings } from '../Common/useSettings';
+import { useSettings } from '../Common/cleanreads';
 
 const Popup = () => {
   const [settings, setSettings] = useSettings();

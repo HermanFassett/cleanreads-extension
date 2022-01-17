@@ -1,3 +1,5 @@
+import { cleanReadRating, SOURCES } from "../Common/cleanreads";
+
 chrome.storage.local.get(['cleanreads_settings'], data => {
 	if (data.cleanreads_settings.ENABLED) {
 		let currentId;
@@ -50,7 +52,7 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 				else {
 					const div = document.createElement('div');
 					td.appendChild(div);
-					setRating(data, div);
+					cleanReadRating(data).then(response => setRating(response, div));
 				}
 				book.appendChild(td);
 			});
@@ -83,12 +85,24 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 
 				let lastSource = -1;
 				response.cleanReads.data.sort((a, b) => a.source - b.source || b.positive - a.positive).forEach(res => {
-					if (lastSource !== res.source && res.source === 0)
-						container.innerHTML += '<h2 class="uitext greyText">Description:</h2>';
-					else if (lastSource !== res.source && res.source === 1)
-						container.innerHTML += '<h2 class="uitext greyText">Shelves:</h2>';
-					else if (lastSource !== res.source && res.source === 2)
-						container.innerHTML += '<h2 class="uitext greyText">Reviews:</h2>';
+					if (lastSource !== res.source) {
+						switch(res.source) {
+							case SOURCES.DESCRIPTION:
+								container.innerHTML += '<h2 class="uitext greyText">Description:</h2>';
+								break;
+							case SOURCES.GENRE:
+								container.innerHTML += '<h2 class="uitext greyText">Genres:</h2>';
+								break;
+							case SOURCES.SHELF:
+								container.innerHTML += '<h2 class="uitext greyText">Shelves:</h2>';
+								break;
+							case SOURCES.REVIEW:
+								container.innerHTML += '<h2 class="uitext greyText">Reviews:</h2>';
+								break;
+							default:
+								break;
+						}
+					}
 					container.innerHTML += res.matchHTML;
 					lastSource = res.source;
 				})

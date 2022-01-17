@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSettings, INITIAL_SETTINGS } from '../Common/useSettings';
+import { useSettings, INITIAL_SETTINGS } from '../Common/cleanreads';
 import './Options.css';
 
 interface Props {
