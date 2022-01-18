@@ -11,7 +11,18 @@ interface Props {
 const Options: React.FC<Props> = ({title} : Props) => {
     const [settings, setSettings, isPersistent, error] = useSettings();
     const [shelves, setShelves] = useState('');
-    const [loadingShelf, setLoadingShelf] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [loadingValue, setLoadingValue] = useState(0);
+    const [loadingMax, setLoadingMax] = useState(0);
+
+    if (!chrome.runtime.onMessage.hasListeners()) {
+        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+            if (request.method === 'loading_list' || request.method === 'loading_group_shelf') {
+                loadBooks(request.data);
+            }
+            return true;
+        });
+    }
 
     function updateTerms(e: React.FormEvent<HTMLInputElement>, positive: boolean) {
         let terms = positive ? document.querySelectorAll("#crPositiveSearchTerms > .crTermsContainer"):
@@ -35,12 +46,6 @@ const Options: React.FC<Props> = ({title} : Props) => {
         setSettings({...settings})
     }
 
-    function removeTerm(positive: boolean) {
-        const copy = JSON.parse(JSON.stringify(settings));
-        copy[positive ? 'POSITIVE_SEARCH_TERMS' : 'NEGATIVE_SEARCH_TERMS'].pop();
-        setSettings({...copy})
-    }
-
     function resetSettings() {
         const initialCopy = JSON.parse(JSON.stringify(INITIAL_SETTINGS));
         initialCopy.CLEAN_BOOKS = settings.CLEAN_BOOKS;
@@ -56,21 +61,29 @@ const Options: React.FC<Props> = ({title} : Props) => {
     }
 
     function loadGroupShelf() {
-        setLoadingShelf(true);
+        setLoading(true);
         chrome.runtime.sendMessage({ method: 'get_group_shelf', data: shelves }, (response) => {
-            const books = settings.CLEAN_BOOKS.concat(response.books).filter((x: any, i : number, arr : Array<any>) => x && arr.indexOf(x) === i);
-            setSettings({...settings, 'CLEAN_BOOKS': books });
-            setLoadingShelf(false);
+            setLoading(false);
+            if (response.cache) {
+                loadBooks(response.data);
+            }
         });
     }
 
     function loadList() {
-        setLoadingShelf(true);
-        chrome.runtime.sendMessage({ method: 'get_list', data: shelves }, (response) => {
-            const books = settings.CLEAN_BOOKS.concat(response.books).filter((x: any, i : number, arr : Array<any>) => x && arr.indexOf(x) === i);
-            setSettings({...settings, 'CLEAN_BOOKS': books });
-            setLoadingShelf(false);
-        })
+        setLoading(true);
+        chrome.runtime.sendMessage({ method: 'get_list', data: shelves }, response => {
+            setLoading(false);
+            if (response.cache) {
+                loadBooks(response.data);
+            }
+        });
+    }
+
+    function loadBooks(response : any) {
+        setLoadingMax(response.total);
+        setLoadingValue(response.current);
+        setSettings((settings: any) => ({...settings, 'CLEAN_BOOKS': settings.CLEAN_BOOKS.concat(response.books).filter((x: any, i : number, arr : Array<any>) => x && arr.indexOf(x) === i) }));
     }
 
     function importCleanBooks(files : Array<File>) {
@@ -109,8 +122,6 @@ const Options: React.FC<Props> = ({title} : Props) => {
                 <div>
                     <button className='cr-button' onClick={() => addTerm(true)}>Add Positive</button>
                     <button className='cr-button' onClick={() => addTerm(false)}>Add Negative</button>
-                    <button className='cr-button' onClick={() => removeTerm(true)}>Remove Positive</button>
-                    <button className='cr-button' onClick={() => removeTerm(false)}>Remove Negative</button>
                 </div>
                 <h4>Positive Search Terms:</h4>
                 <div id="crPositiveSearchTerms">
@@ -139,9 +150,14 @@ const Options: React.FC<Props> = ({title} : Props) => {
                 <h2>Clean Book List:</h2>
                 <div>
                     <input name='groupShelf' type='text' value={shelves} onChange={(e) => setShelves(e.target.value)} />
-                    <button className='cr-button' onClick={loadList} disabled={loadingShelf}>{loadingShelf ? 'Loading...' : 'Load List'}</button>
-                    <button className='cr-button' onClick={loadGroupShelf} disabled={loadingShelf}>{loadingShelf ? 'Loading...' : 'Load Group Shelf'}</button>
+                    <button className='cr-button' onClick={loadList} disabled={loading}>{loading ? 'Loading...' : 'Load List'}</button>
+                    <button className='cr-button' onClick={loadGroupShelf} disabled={loading}>{loading ? 'Loading...' : 'Load Group Shelf'}</button>
                 </div>
+                {
+                    loading ?
+                    <progress value={loadingValue} max={loadingMax}></progress> : <></>
+                }
+                
                 <p><i>Recommended lists: <a href='https://www.goodreads.com/list/show/3674' target='_blank'>3674</a></i></p>
                 <p><i>Recommended group shelves: <a href='https://www.goodreads.com/group/bookshelf/5989' target='_blank'>5989</a></i></p>
                 <p><b>Loaded books: </b>{settings.CLEAN_BOOKS.length}</p>

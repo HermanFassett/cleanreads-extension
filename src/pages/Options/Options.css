@@ -33,6 +33,11 @@
   margin-right: 5px;
 }
 
+.cr-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 input[type=text], input[type=number], input[type=search], input[type=email], input[type=number], input[type=password], textarea {
   background: #FFFFFF;
   border-radius: 3px;

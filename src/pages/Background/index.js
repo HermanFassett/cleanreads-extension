@@ -39,12 +39,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				getGroupShelf(shelfId).then(shelf => {
 					console.log('Loaded data for get_group_shelf', shelfId);
 					chrome.storage.local.set({ [key]: shelf });
-					sendResponse(shelf);
+					sendResponse({ cache: false, data: shelf });
 				});
 			}
 			else {
 				console.log('Used cache for get_group_shelf', shelfId);
-				sendResponse(data[key]);
+				sendResponse({ cache: true, data: data[key] });
 			}
 		});
 	}
@@ -57,12 +57,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 				getList(listId).then(shelf => {
 					console.log('Loaded data for get_list', listId);
 					chrome.storage.local.set({ [key]: shelf });
-					sendResponse(shelf);
+					sendResponse({ cache: false, data: shelf });
 				});
 			}
 			else {
 				console.log('Used cache for get_list', listId);
-				sendResponse(data[key]);
+				sendResponse({ cache: true, data: data[key] });
 			}
 		});
 	}
