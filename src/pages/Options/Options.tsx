@@ -25,8 +25,8 @@ const Options: React.FC<Props> = ({title} : Props) => {
     }
 
     function updateTerms(e: React.FormEvent<HTMLInputElement>, positive: boolean) {
-        let terms = positive ? document.querySelectorAll("#crPositiveSearchTerms > .crTermsContainer"):
-                    document.querySelectorAll("#crNegativeSearchTerms > .crTermsContainer");
+        let terms = positive ? document.querySelectorAll("#crPositiveSearchTerms .crTermsContainer"):
+                    document.querySelectorAll("#crNegativeSearchTerms .crTermsContainer");
 
         const values = Array.from(terms).map((search) => {
             console.log(search)
@@ -37,13 +37,8 @@ const Options: React.FC<Props> = ({title} : Props) => {
                     after: (search.querySelector("[name=excludeAfter]") as HTMLInputElement)?.value?.split(",").map(x => x.trim())
                 }
             }
-        }).filter(x => x.term);
+        }).filter(x => x.term).concat([{ term: '', exclude: { before: [], after: [] }}]);
         setSettings({...settings, [positive ? 'POSITIVE_SEARCH_TERMS' : 'NEGATIVE_SEARCH_TERMS']: values })
-    }
-
-    function addTerm(positive: boolean) {
-        settings[positive ? 'POSITIVE_SEARCH_TERMS' : 'NEGATIVE_SEARCH_TERMS'].push({ term: '', exclude: { before: [], after: [] }});
-        setSettings({...settings})
     }
 
     function resetSettings() {
@@ -138,34 +133,46 @@ const Options: React.FC<Props> = ({title} : Props) => {
                     <button className='cr-button' onClick={resetCleanBooks}>Empty List</button>
                 </div>
                 <h2>Search Terms:</h2>
-                <div>
-                    <button className='cr-button' onClick={() => addTerm(true)}>Add Positive</button>
-                    <button className='cr-button' onClick={() => addTerm(false)}>Add Negative</button>
-                </div>
-                <h4>Positive Search Terms:</h4>
-                <div id="crPositiveSearchTerms">
-                    {settings.POSITIVE_SEARCH_TERMS.map((x: any, index: number) => {
-                        return (
-                            <div className='crTermsContainer'>
-                                <input name='excludeBefore' value={x.exclude.before.join(', ')} type='text' onChange={(e) => updateTerms(e, true)} />
-                                <input name='term' value={x.term} type='text' onChange={(e) => updateTerms(e, true)} />
-                                <input name='excludeAfter' value={x.exclude.after.join(', ')} type='text' onChange={(e) => updateTerms(e, true)} />
-                            </div>
-                        )
-                    })}
-                </div>
-                <h4>Negative Search Terms:</h4>
-                <div id="crNegativeSearchTerms">
-                    {settings.NEGATIVE_SEARCH_TERMS.map((x: any, index: number) => {
-                        return (
-                            <div className='crTermsContainer'>
-                                <input name='excludeBefore' value={x.exclude.before.join(', ')} type='text' onChange={(e) => updateTerms(e, false)} />
-                                <input name='term' value={x.term} type='text' onChange={(e) => updateTerms(e, false)} />
-                                <input name='excludeAfter' value={x.exclude.after.join(', ')} type='text' onChange={(e) => updateTerms(e, false)} />
-                            </div>
-                        )
-                    })}
-                </div>
+                <table>
+                    <tbody id='crPositiveSearchTerms'>
+                        <tr>
+                            <th colSpan={3}>Positive Search Terms:</th>
+                        </tr>
+                        <tr>
+                            <th>Ignore Before</th>
+                            <th>Search Term</th>
+                            <th>Ignore After</th>
+                        </tr>
+                        {settings.POSITIVE_SEARCH_TERMS.map((x: any, index: number) => {
+                            return (
+                                <tr className='crTermsContainer' key={index}>
+                                    <td><input name='excludeBefore' value={x.exclude.before.join(', ')} type='text' onChange={(e) => updateTerms(e, true)} /></td>
+                                    <td><input name='term' value={x.term} type='text' onChange={(e) => updateTerms(e, true)} /></td>
+                                    <td><input name='excludeAfter' value={x.exclude.after.join(', ')} type='text' onChange={(e) => updateTerms(e, true)} /></td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                    <tbody id='crNegativeSearchTerms'>
+                        <tr>
+                            <th colSpan={3}>Negative Search Terms:</th>
+                        </tr>
+                        <tr>
+                            <th>Ignore Before</th>
+                            <th>Search Term</th>
+                            <th>Ignore After</th>
+                        </tr>
+                        {settings.NEGATIVE_SEARCH_TERMS.map((x: any, index: number) => {
+                            return (
+                                <tr className='crTermsContainer' key={index}>
+                                    <td><input name='excludeBefore' value={x.exclude.before.join(', ')} type='text' onChange={(e) => updateTerms(e, false)} /></td>
+                                    <td><input name='term' value={x.term} type='text' onChange={(e) => updateTerms(e, false)} /></td>
+                                    <td><input name='excludeAfter' value={x.exclude.after.join(', ')} type='text' onChange={(e) => updateTerms(e, false)} /></td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
                 <h2>Snippet length:</h2>
                 <input type='number' value={settings.SNIPPET_HALF_LENGTH} min='0' onChange={(e) => setSettings({...settings, SNIPPET_HALF_LENGTH: parseInt(e.target.value) })} />
             </div>

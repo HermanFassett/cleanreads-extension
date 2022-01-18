@@ -15,6 +15,7 @@ export const INITIAL_SETTINGS = {
         { term: 'no sex', exclude: { before: [], after: [] }},
         { term: 'young adult', exclude: { before: [], after: [] }},
 		{ term: 'no explicit', exclude: { before: [], after: [] }},
+		{ term: '', exclude: { before: [], after: [] }},
     ],
     NEGATIVE_SEARCH_TERMS: [
         { term: 'sex', exclude: { before: ['no'], after: ['ist'] }},
@@ -22,6 +23,7 @@ export const INITIAL_SETTINGS = {
         { term: 'erotic', exclude: { before: ['not', 'isn\'t'], after: []}},
 		{ term: 'explicit', exclude: { before: ['no', 'not', 'isn\'t'], after: ['ly']}},
 		{ term: 'mature', exclude: { before: ['im', 'pre', 'not', 'isn\'t'], after: ['d']}},
+		{ term: '', exclude: { before: [], after: [] }},
     ],
     SNIPPET_HALF_LENGTH: 65,
     ENABLED: true,
