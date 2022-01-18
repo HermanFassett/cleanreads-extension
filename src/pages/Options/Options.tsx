@@ -118,6 +118,25 @@ const Options: React.FC<Props> = ({title} : Props) => {
                     <button className='cr-button' onClick={resetSettings}>Reset Settings</button>
                     <button className='cr-button' onClick={clearCache}>Clear Book Cache</button>
                 </div>
+                <h2>Clean Book List:</h2>
+                <div>
+                    <input name='groupShelf' type='text' value={shelves} onChange={(e) => setShelves(e.target.value)} />
+                    <button className='cr-button' onClick={loadList} disabled={loading}>{loading ? 'Loading...' : 'Load List'}</button>
+                    <button className='cr-button' onClick={loadGroupShelf} disabled={loading}>{loading ? 'Loading...' : 'Load Group Shelf'}</button>
+                </div>
+                {
+                    loading ?
+                    <progress value={loadingValue} max={loadingMax}></progress> : <></>
+                }
+                
+                <p><i>Recommended lists: <a href='https://www.goodreads.com/list/show/3674' target='_blank'>3674</a></i></p>
+                <p><i>Recommended group shelves: <a href='https://www.goodreads.com/group/bookshelf/5989' target='_blank'>5989</a></i></p>
+                <p><b>Loaded books: </b>{settings.CLEAN_BOOKS.length}</p>
+                <div>
+                    <Files onChange={importCleanBooks} multiple accepts={['.json']}><button className='cr-button'>Import List</button></Files>
+                    <a className='cr-button' download='cleanreads.json' href={`data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(settings.CLEAN_BOOKS))}`}>Download List</a>
+                    <button className='cr-button' onClick={resetCleanBooks}>Empty List</button>
+                </div>
                 <h2>Search Terms:</h2>
                 <div>
                     <button className='cr-button' onClick={() => addTerm(true)}>Add Positive</button>
@@ -146,25 +165,6 @@ const Options: React.FC<Props> = ({title} : Props) => {
                             </div>
                         )
                     })}
-                </div>
-                <h2>Clean Book List:</h2>
-                <div>
-                    <input name='groupShelf' type='text' value={shelves} onChange={(e) => setShelves(e.target.value)} />
-                    <button className='cr-button' onClick={loadList} disabled={loading}>{loading ? 'Loading...' : 'Load List'}</button>
-                    <button className='cr-button' onClick={loadGroupShelf} disabled={loading}>{loading ? 'Loading...' : 'Load Group Shelf'}</button>
-                </div>
-                {
-                    loading ?
-                    <progress value={loadingValue} max={loadingMax}></progress> : <></>
-                }
-                
-                <p><i>Recommended lists: <a href='https://www.goodreads.com/list/show/3674' target='_blank'>3674</a></i></p>
-                <p><i>Recommended group shelves: <a href='https://www.goodreads.com/group/bookshelf/5989' target='_blank'>5989</a></i></p>
-                <p><b>Loaded books: </b>{settings.CLEAN_BOOKS.length}</p>
-                <div>
-                    <Files onChange={importCleanBooks} multiple accepts={['.json']}><button className='cr-button'>Import List</button></Files>
-                    <a className='cr-button' download='cleanreads.json' href={`data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(settings.CLEAN_BOOKS))}`}>Download List</a>
-                    <button className='cr-button' onClick={resetCleanBooks}>Empty List</button>
                 </div>
                 <h2>Snippet length:</h2>
                 <input type='number' value={settings.SNIPPET_HALF_LENGTH} min='0' onChange={(e) => setSettings({...settings, SNIPPET_HALF_LENGTH: parseInt(e.target.value) })} />

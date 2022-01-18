@@ -62,7 +62,6 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 						button.innerText = 'Load';
 						button.onclick = function(e) {
 							e.target.disabled = true;
-							e.target.innerText = 'Loading...';
 							chrome.runtime.sendMessage({method: "get_book", data: bookId }, (response) => {
 								const { positive, negative, percent } = setRating(response, e.target);
 								loadChart(bookId, 60, positive, negative, percent);
