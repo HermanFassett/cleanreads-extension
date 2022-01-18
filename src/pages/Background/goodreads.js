@@ -9,6 +9,32 @@ export const getBook = async (id) => {
 	return await parseBookHTML(html);
 };
 
+// Scrape all books from list
+export const getGenre = async (id, page, books) => {
+	if (!page) page = 1;
+	if (!books) books = [];
+	const response = await fetch(`https://www.goodreads.com/shelf/show/${id}?page=${page}`);
+	const html = await response.text();
+	const $ = cheerio.load(html);
+	const pageCount = Math.min(25, +$([...$($('.next_page').parent()).find('a:not(.next_page)')].pop()).text());
+	const pageBooks = $('.leftContainer .elementList div > a.leftAlignedImage').toArray().map(x => ($(x).attr('href').match(/show\/(\d*)/) || [])[1]);
+	chrome.runtime.sendMessage({ method: 'loading_genre', data: { id, current: page, books: pageBooks, total: pageCount }});
+	if (pageBooks.length && pageCount) {
+		return await getGenre(id, ++page, books.concat(pageBooks));
+	}
+	else {
+		const title = $('.genreHeader').text().slice(0, -6);
+		return { 
+			timestamp: +(new Date()),
+			id,
+			books: books.filter((x, i, arr) => x && arr.indexOf(x) === i),
+			title,
+			current: page,
+			total: page,
+		};
+	}
+};
+
 // Scrape all books from group shelf
 export const getGroupShelf = async (id, page, books) => {
 	if (!page) page = 1;

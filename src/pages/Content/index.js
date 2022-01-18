@@ -161,6 +161,31 @@ function loadRating(book) {
 		container.innerHTML += res.matchHTML;
 		lastSource = res.source;
 	});
+
+	const cleanButton = document.createElement('button');
+	cleanButton.className = 'gr-button';
+	cleanButton.innerText = book.cleanReads.cleanRead ? 'Remove From Clean List' : 'Add To Clean List';
+	cleanButton.style.marginBottom = '15px';
+	cleanButton.onclick = async function(e) {
+		console.log(book.cleanReads.cleanRead);
+		e.target.disabled = true;
+		const data = await chrome.storage.local.get(['cleanreads_settings']);
+		if (book.cleanReads.cleanRead) {
+			data.cleanreads_settings.CLEAN_BOOKS = data.cleanreads_settings.CLEAN_BOOKS.filter(x => x !== book.id);
+			e.target.innerText = 'Add To Clean List';
+
+		}
+		else {
+			data.cleanreads_settings.CLEAN_BOOKS = data.cleanreads_settings.CLEAN_BOOKS.concat([book.id]);
+			e.target.innerText = 'Remove From Clean List';
+		}
+		
+		await chrome.storage.local.set({ 'cleanreads_settings': data.cleanreads_settings });
+		e.target.disabled = false;
+		book.cleanReads.cleanRead = !book.cleanReads.cleanRead;
+		loadRating(book);
+	}
+	container.append(cleanButton);
 }
 
 // Get positives, negatives, and percent of rating

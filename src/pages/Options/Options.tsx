@@ -17,7 +17,7 @@ const Options: React.FC<Props> = ({title} : Props) => {
 
     if (!chrome.runtime.onMessage.hasListeners()) {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-            if (request.method === 'loading_list' || request.method === 'loading_group_shelf') {
+            if (request.method === 'loading_list' || request.method === 'loading_group_shelf' || request.method === 'loading_genre') {
                 loadBooks(request.data);
             }
             return true;
@@ -52,6 +52,16 @@ const Options: React.FC<Props> = ({title} : Props) => {
         chrome.storage.local.clear(() => {
             setSettings(settingsCopy);
             window.location.reload()
+        });
+    }
+
+    function loadGenre() {
+        setLoading(true);
+        chrome.runtime.sendMessage({ method: 'get_genre', data: shelves }, response => {
+            setLoading(false);
+            if (response.cache) {
+                loadBooks(response.data);
+            }
         });
     }
 
@@ -116,16 +126,16 @@ const Options: React.FC<Props> = ({title} : Props) => {
                 <h2>Clean Book List:</h2>
                 <div>
                     <input name='groupShelf' type='text' value={shelves} onChange={(e) => setShelves(e.target.value)} />
-                    <button className='cr-button' onClick={loadList} disabled={loading}>{loading ? 'Loading...' : 'Load List'}</button>
-                    <button className='cr-button' onClick={loadGroupShelf} disabled={loading}>{loading ? 'Loading...' : 'Load Group Shelf'}</button>
+                    <button className='cr-button' onClick={loadGenre} disabled={loading}>Load Genre</button>
+                    <button className='cr-button' onClick={loadList} disabled={loading}>Load List</button>
+                    <button className='cr-button' onClick={loadGroupShelf} disabled={loading}>Load Group Shelf</button>
                 </div>
                 {
                     loading ?
                     <progress value={loadingValue} max={loadingMax}></progress> : <></>
                 }
                 
-                <p><i>Recommended lists: <a href='https://www.goodreads.com/list/show/3674' target='_blank'>3674</a></i></p>
-                <p><i>Recommended group shelves: <a href='https://www.goodreads.com/group/bookshelf/5989' target='_blank'>5989</a></i></p>
+                <p><i>Genre can only load first 50 books if guest or first 1250 books if signed in.</i></p>
                 <p><b>Loaded books: </b>{settings.CLEAN_BOOKS.length}</p>
                 <div>
                     <Files onChange={importCleanBooks} multiple accepts={['.json']}><button className='cr-button'>Import List</button></Files>
