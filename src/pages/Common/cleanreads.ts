@@ -71,6 +71,7 @@ export const parseBookHTML = async (html: string) => {
 		ratings: +($('#bookMeta [itemprop=ratingCount]').attr('content') as string),
 		reviews: +($('#bookMeta [itemprop=reviewCount]').attr('content') as string)
 	}
+	bookData.cover = $('#coverImage').attr('src');
 	bookData.description = $('#descriptionContainer .readable span:last-of-type').text();
 	bookData.descriptionHTML = $('#descriptionContainer .readable span:last-of-type').html();
 	bookData.reviews = $('.review').toArray().map(review => {
@@ -119,7 +120,7 @@ export const cleanReadRating = async (book: any) => {
 	};
 	// Return rating object with all data
 	book.cleanReads = {
-        cleanRead: settings.CLEAN_BOOKS.indexOf(book.id) > -1,
+        cleanRead: settings.CLEAN_BOOKS.findIndex((x: any) => x.id === book.id) > -1,
 		positive: results.filter(x => x.positive).length,
 		negative: results.filter(x => !x.positive).length,
 		rating: `${results.filter(x => x.positive).length}/${results.filter(x => !x.positive).length}`,

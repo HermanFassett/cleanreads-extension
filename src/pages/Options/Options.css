@@ -10,6 +10,38 @@
   margin-bottom: 5px;
 }
 
+#crCleanBookList {
+  margin-bottom: 15px;
+  position: relative;
+  float: left;
+}
+.crBook {
+  width: 100px;
+  height: 150px;
+  margin: 2px;
+  position: relative;
+  float: left;
+  align-content: center;
+}
+
+.crBook .remove {
+  position: absolute;
+  background-color: rgb(199, 92, 92);
+  opacity: 0.7;
+  font-weight: bold;
+  border: none;
+  border-radius: 0 0 15px 0;
+  height: 25px;
+  width: 30px;
+}
+
+.crBook .remove:hover {
+  opacity: 1;
+  height: 30px;
+  width: 35px;
+  cursor: pointer;
+}
+
 .cleanReadsSettings {
   width: 100%;
 }

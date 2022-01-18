@@ -17,7 +17,13 @@ export const getGenre = async (id, page, books) => {
 	const html = await response.text();
 	const $ = cheerio.load(html);
 	const pageCount = Math.min(25, +$([...$($('.next_page').parent()).find('a:not(.next_page)')].pop()).text());
-	const pageBooks = $('.leftContainer .elementList div > a.leftAlignedImage').toArray().map(x => ($(x).attr('href').match(/show\/(\d*)/) || [])[1]);
+	const pageBooks = $('.leftContainer .elementList div > a.leftAlignedImage').toArray().map(x => {
+		return {
+			id: ($(x).attr('href').match(/show\/(\d*)/) || [])[1],
+			title: $(x).attr('title'),
+			cover: $(x).find('img').attr('src'),
+		};
+	});
 	chrome.runtime.sendMessage({ method: 'loading_genre', data: { id, current: page, books: pageBooks, total: pageCount }});
 	if (pageBooks.length && pageCount) {
 		return await getGenre(id, ++page, books.concat(pageBooks));
@@ -27,7 +33,7 @@ export const getGenre = async (id, page, books) => {
 		return { 
 			timestamp: +(new Date()),
 			id,
-			books: books.filter((x, i, arr) => x && arr.indexOf(x) === i),
+			books: books.filter((x, i, arr) => x && x.title && arr.findIndex(y => y.id === x.id) === i),
 			title,
 			current: page,
 			total: page,
@@ -43,14 +49,20 @@ export const getGroupShelf = async (id, page, books) => {
 	const html = await response.text();
 	const $ = cheerio.load(html);
 	const pageCount = +$([...$($('.next_page').parent()).find('a:not(.next_page)')].pop()).text();
-	const pageBooks = $('.rightContainer div > a').toArray().map(x => ($(x).attr('href').match(/show\/(\d*)/) || [])[1]);
+	const pageBooks = $('.rightContainer > div > a').toArray().map(x => {
+		return {
+			id: ($(x).attr('href').match(/show\/(\d*)/) || [])[1],
+			title: $(x).attr('title') || $(x).find('img').attr('title'),
+			cover: $(x).find('img').attr('src'),
+		}
+	});
 	chrome.runtime.sendMessage({ method: 'loading_group_shelf', data: { id, current: page, books: pageBooks, total: pageCount }});
 	if (pageBooks.length) {
 		return await getGroupShelf(id, ++page, books.concat(pageBooks));
 	}
 	else {
 		const title = $('#pageHeader a').attr('title');
-		return { timestamp: +(new Date()), id, books: books.filter((x, i, arr) => x && arr.indexOf(x) === i), title };
+		return { timestamp: +(new Date()), id, books: books.filter((x, i, arr) => x && x.title && arr.findIndex(y => y.id === x.id) === i), title };
 	}
 };
 
@@ -62,7 +74,13 @@ export const getList = async (id, page, books) => {
 	const html = await response.text();
 	const $ = cheerio.load(html);
 	const pageCount = +$([...$('.pagination a:not(.next_page)')].pop()).text();
-	const pageBooks = $('tr[itemtype="http://schema.org/Book"] div.u-anchorTarget').toArray().map(x => $(x).attr('id'));
+	const pageBooks = $('tr[itemtype="http://schema.org/Book"]').toArray().map(x => {
+		return {
+			id: $(x).find('div.u-anchorTarget').attr('id'),
+			title: $(x).find('.bookTitle').text().trim(),
+			cover: $(x).find('.bookCover').attr('src'),
+		};
+	});
 	chrome.runtime.sendMessage({ method: 'loading_list', data: { id, current: page, books: pageBooks, total: pageCount }});
 	if (pageBooks.length) {
 		return await getList(id, ++page, books.concat(pageBooks));
@@ -73,7 +91,7 @@ export const getList = async (id, page, books) => {
 		return { 
 			timestamp: +(new Date()),
 			id,
-			books: books.filter((x, i, arr) => x && arr.indexOf(x) === i),
+			books: books.filter((x, i, arr) => x && x.title && arr.findIndex(y => y.id === x.id) === i),
 			title,
 			current: page,
 			total: page,

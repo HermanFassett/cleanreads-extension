@@ -46,7 +46,7 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 				return { positive, negative, percent };
 			}
 			
-			if (data.cleanreads_settings.CLEAN_BOOKS.indexOf(bookId) > -1) {
+			if (data.cleanreads_settings.CLEAN_BOOKS.findIndex(x => x.id === bookId) > -1) {
 				const div = document.createElement('div');
 				td.appendChild(div);
 				const { positive, negative, percent } = setRating({ cleanReads: { cleanRead: true, positive: 0, negative: 0 }}, div);
@@ -167,16 +167,20 @@ function loadRating(book) {
 	cleanButton.innerText = book.cleanReads.cleanRead ? 'Remove From Clean List' : 'Add To Clean List';
 	cleanButton.style.marginBottom = '15px';
 	cleanButton.onclick = async function(e) {
-		console.log(book.cleanReads.cleanRead);
 		e.target.disabled = true;
 		const data = await chrome.storage.local.get(['cleanreads_settings']);
 		if (book.cleanReads.cleanRead) {
-			data.cleanreads_settings.CLEAN_BOOKS = data.cleanreads_settings.CLEAN_BOOKS.filter(x => x !== book.id);
+			data.cleanreads_settings.CLEAN_BOOKS = data.cleanreads_settings.CLEAN_BOOKS.filter(x => x.id !== book.id);
 			e.target.innerText = 'Add To Clean List';
 
 		}
 		else {
-			data.cleanreads_settings.CLEAN_BOOKS = data.cleanreads_settings.CLEAN_BOOKS.concat([book.id]);
+			data.cleanreads_settings.CLEAN_BOOKS = data.cleanreads_settings.CLEAN_BOOKS
+				.concat([{
+					id: book.id,
+					title: book.title,
+					cover: book.cover,
+				}]).sort((a, b) => a.title.localeCompare(b.title));
 			e.target.innerText = 'Remove From Clean List';
 		}
 		

@@ -14,6 +14,7 @@ const Options: React.FC<Props> = ({title} : Props) => {
     const [loading, setLoading] = useState(false);
     const [loadingValue, setLoadingValue] = useState(0);
     const [loadingMax, setLoadingMax] = useState(0);
+    const [viewlist, setViewlist] = useState(false);
 
     if (!chrome.runtime.onMessage.hasListeners()) {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -88,7 +89,12 @@ const Options: React.FC<Props> = ({title} : Props) => {
     function loadBooks(response : any) {
         setLoadingMax(response.total);
         setLoadingValue(response.current);
-        setSettings((settings: any) => ({...settings, 'CLEAN_BOOKS': settings.CLEAN_BOOKS.concat(response.books).filter((x: any, i : number, arr : Array<any>) => x && arr.indexOf(x) === i) }));
+        setSettings((settings: any) => ({...settings, 'CLEAN_BOOKS': settings.CLEAN_BOOKS.concat(response.books)
+            .filter((x: any, i : number, arr : Array<any>) => x && arr.findIndex(y => y.id === x.id) === i).sort((a: any, b: any) => a.title.localeCompare(b.title)) }));
+    }
+
+    function removeBook(id: string) {
+        setSettings((settings: any) => ({...settings, 'CLEAN_BOOKS': settings.CLEAN_BOOKS.filter((x: any) => x.id !== id)}));
     }
 
     function importCleanBooks(files : Array<File>) {
@@ -100,8 +106,7 @@ const Options: React.FC<Props> = ({title} : Props) => {
                 books = books.concat(JSON.parse((event.target?.result as string)))
                 loaded++;
                 if (loaded == files.length) {
-                    const list = settings.CLEAN_BOOKS.concat(books).filter((x: any, i : number, arr : Array<any>) => x && arr.indexOf(x) === i);
-                    setSettings({...settings, 'CLEAN_BOOKS': list });
+                    loadBooks({ books });
                 }
             }
             fileReader.readAsText(file);
@@ -115,7 +120,7 @@ const Options: React.FC<Props> = ({title} : Props) => {
     }
 
     return (
-        <div className='OptionsContainer'>
+        <div className='OptionsContainer' onScroll={(e) => console.log(e)}>
             <div>
                 <h1>{title} Page</h1>
                 
@@ -139,8 +144,21 @@ const Options: React.FC<Props> = ({title} : Props) => {
                 <p><b>Loaded books: </b>{settings.CLEAN_BOOKS.length}</p>
                 <div>
                     <Files onChange={importCleanBooks} multiple accepts={['.json']}><button className='cr-button'>Import List</button></Files>
+                    <button className='cr-button' onClick={() => setViewlist(!viewlist)}>{viewlist ? 'Hide List' : 'View List'}</button>
                     <a className='cr-button' download='cleanreads.json' href={`data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(settings.CLEAN_BOOKS))}`}>Download List</a>
                     <button className='cr-button' onClick={resetCleanBooks}>Empty List</button>
+                </div>
+                <div id='crCleanBookList'>
+                    {viewlist && settings.CLEAN_BOOKS.map((x: any) => {
+                        return (
+                            <div className='crBook' key={x.id} title={x.title}>
+                                <button className='remove' onClick={() => removeBook(x.id)}>X</button>
+                                <a href={`https://www.goodreads.com/book/show/${x.id}`} target='_blank'>
+                                    <img alt={x.title} src={x.cover.match('_.jpg') ? x.cover.replace(/(\_SX\d+\_?)?(\_SY\d+\_)?\.jpg/, '_SY150_.jpg') : x.cover} width='100' />
+                                </a>
+                            </div>
+                        )
+                    })}
                 </div>
                 <h2>Search Terms:</h2>
                 <table>
