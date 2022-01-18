@@ -220,6 +220,7 @@ function loadChart(id, size, positive, negative, percent) {
 			textinfo: 'none',
 			hoverinfo: 'none',
 			textposition: 'inside',
+			sort: false,
 		}],
 		{
 			width: size,
