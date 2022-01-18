@@ -1,4 +1,4 @@
-import { cleanReadRating, SOURCES } from "../Common/cleanreads";
+import { cleanReadRating, parseBookHTML, SOURCES } from "../Common/cleanreads";
 import Plotly from 'plotly.js-dist-min';
 
 chrome.storage.local.get(['cleanreads_settings'], data => {
@@ -94,53 +94,74 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 			document.querySelector('.rightContainer').prepend(container);
 
 			chrome.runtime.sendMessage({method: "get_book", data: currentId }, (response) => {
-				console.log(response);
-				const {positive, negative, percent} = getRating(response.cleanReads);
-				const container = document.querySelector('#cleanReadsRating');
+				let attempts = 10;
 
-				container.innerHTML = `
-					<h2 class='gr-h1 u-bottomGrayBorder' style='text-align:center'>Cleanreads Rating</h2>
-					${ percent !== null ?
-						`<div id="gd_${currentId}" class='crPieChart'></div>` :
-						`<h2 class='uitext greyText' style='text-align:center'>No rating</h2>`
-					}
-				`;
-
-				if (percent !== null) {
-					loadChart(currentId, 90, positive, negative, percent, true);
+				if (response.rating.reviews > 0 && response.reviews.length === 0) {
+					loadLocalHTML();
+				}
+				else {
+					loadRating(response);
 				}
 
-				if (response.cleanReads.cleanRead) {
-					container.innerHTML += '<h2 class="uitext contentClean">Found in Clean Book List</h2>'
-				}
-
-				let lastSource = -1;
-				response.cleanReads.data.sort((a, b) => a.source - b.source || b.positive - a.positive).forEach(res => {
-					if (lastSource !== res.source) {
-						switch(res.source) {
-							case SOURCES.DESCRIPTION:
-								container.innerHTML += '<h2 class="uitext greyText">Description:</h2>';
-								break;
-							case SOURCES.GENRE:
-								container.innerHTML += '<h2 class="uitext greyText">Genres:</h2>';
-								break;
-							case SOURCES.SHELF:
-								container.innerHTML += '<h2 class="uitext greyText">Shelves:</h2>';
-								break;
-							case SOURCES.REVIEW:
-								container.innerHTML += '<h2 class="uitext greyText">Reviews:</h2>';
-								break;
-							default:
-								break;
-						}
+				async function loadLocalHTML() {
+					let book = await parseBookHTML(document.body.innerHTML);
+					if (!book.reviews.length && attempts--) {
+						setTimeout(loadLocalHTML, 1000);
 					}
-					container.innerHTML += res.matchHTML;
-					lastSource = res.source;
-				});
+					else {
+						loadRating(await cleanReadRating(book));
+					}
+				}
 			});
 		}
 	}
 });
+
+function loadRating(book) {
+	console.log(book);
+	const {positive, negative, percent} = getRating(book.cleanReads);
+	const container = document.querySelector('#cleanReadsRating');
+
+	container.innerHTML = `
+		<h2 class='gr-h1 u-bottomGrayBorder' style='text-align:center'>Cleanreads Rating</h2>
+		${ percent !== null ?
+			`<div id="gd_${book.id}" class='crPieChart'></div>` :
+			`<h2 class='uitext greyText' style='text-align:center'>No rating</h2>`
+		}
+	`;
+
+	if (percent !== null) {
+		loadChart(book.id, 90, positive, negative, percent, true);
+	}
+
+	if (book.cleanReads.cleanRead) {
+		container.innerHTML += '<h2 class="uitext contentClean">Found in Clean Book List</h2>'
+	}
+
+	let lastSource = -1;
+	book.cleanReads.data.sort((a, b) => a.source - b.source || b.positive - a.positive).forEach(res => {
+		if (lastSource !== res.source) {
+			switch(res.source) {
+				case SOURCES.DESCRIPTION:
+					container.innerHTML += '<h2 class="uitext greyText">Description:</h2>';
+					break;
+				case SOURCES.GENRE:
+					container.innerHTML += '<h2 class="uitext greyText">Genres:</h2>';
+					break;
+				case SOURCES.SHELF:
+					container.innerHTML += '<h2 class="uitext greyText">Shelves:</h2>';
+					break;
+				case SOURCES.REVIEW:
+					container.innerHTML += '<h2 class="uitext greyText">Reviews:</h2>';
+					break;
+				default:
+					break;
+			}
+		}
+		container.innerHTML += res.matchHTML;
+		lastSource = res.source;
+	});
+}
 
 // Get positives, negatives, and percent of rating
 function getRating(cleanReads) {

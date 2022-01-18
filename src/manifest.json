@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Cleanreads",
   "options_page": "options.html",
-  "background": { "service_worker": "background.bundle.js", "type": "module" },
+  "background": { "service_worker": "background.bundle.js" },
   "permissions": ["storage", "unlimitedStorage"],
   "action": {
     "default_popup": "popup.html",

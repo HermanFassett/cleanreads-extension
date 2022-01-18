@@ -1,127 +1,57 @@
 import * as cheerio from 'cheerio';
+import { parseBookHTML } from '../Common/cleanreads';
 
 
 // Scrape book data from goodreads website given (gr) book id
-export const getBook = (id) => {
-	const bookUrl = `https://www.goodreads.com/book/show/${id}`;
-	return new Promise((resolve, reject) => {
-		fetch(bookUrl).then(response => response.text()).then((html) => {
-			const $ = cheerio.load(html);
-			const bookData = { timestamp: +(new Date()), id };
-			bookData.title = $('#bookTitle').text().trim();
-			bookData.originalTitle = $('#bookDataBox .clearFloats:contains("Original Title") .infoBoxRowItem').text();
-			bookData.isbn = $('#bookDataBox .clearFloats:contains("ISBN") .infoBoxRowItem').text().trim().split('\n')[0];
-			bookData.isbn13 = ($('#bookDataBox .clearFloats:contains("ISBN13") .infoBoxRowItem').text().match(/ISBN13: ([0-9]+)/) || ['',''])[1];
-			bookData.language = $('#bookDataBox .clearFloats:contains("Language") .infoBoxRowItem').text();
-			bookData.pages = parseInt($('#details [itemprop=numberOfPages]').text());
-			bookData.format = $('#details [itemprop=bookFormat]').text();
-			const publishMatch = $("#details div.row:eq(1)").text().replaceAll('\n', '').match(/Published (.+) by (.+)/);
-			bookData.published = publishMatch && publishMatch.length > 1 ? publishMatch[1].trim() : $("#details div.row:eq(1)").text();
-			bookData.publisher = publishMatch && publishMatch.length > 2 ? publishMatch[2].trim() : '';
-			bookData.series = [...$('#bookDataBox .clearFloats:contains("Series") .infoBoxRowItem a')].map(series => {
-				const match = $(series).text().match(/(^.+) #([0-9]+)$/)
-				return {
-					name: match && match.length > 1 ? match[1] : $(series).text(),
-					url: $(series).attr('href'),
-					number: match && match.length > 2 ? +match[2] : -1
-				}
-			})
-			bookData.authors = [...$('#bookAuthors .authorName')].map(author => {
-				return {
-					name: $(author).text(),
-					url: $(author).attr('href'),
-					goodreadsAuthor: $(author).parent().text().indexOf('(Goodreads Author)') > -1
-				}
-			}).filter((x, i, arr) => arr.findIndex(y => y.url === x.url) === i);
-			bookData.genres = [...$('.bookPageGenreLink[href]')].map(genre => {
-				return {
-					name: $(genre).text(),
-					url: $(genre).attr('href'),
-				}
-			}).filter((x, i, arr) => arr.findIndex(y => y.name === x.name) === i);
-			bookData.rating = {
-				stars: +$('#bookMeta [itemprop=ratingValue]').text().trim(),
-				ratings: +$('#bookMeta [itemprop=ratingCount]').attr('content'),
-				reviews: +$('#bookMeta [itemprop=reviewCount]').attr('content')
-			}
-			bookData.description = $('#descriptionContainer .readable span:last').text();
-			bookData.descriptionHTML = $('#descriptionContainer .readable span:last').html();
-			bookData.reviews = [...$('#reviews .review')].map(review => {
-				const reviewData = {};
-				reviewData.id = $(review).attr('id');
-				reviewData.shelves = [...$(review).find('.bookshelves a')].map(x => { return { 'name': $(x).text(), 'url': $(x).attr('href') }});
-
-				const span = $(review).find('.reviewText .readable span:last');
-				reviewData.text = span.text().trim();
-				reviewData.url = $(review).find('link').attr('href');
-				reviewData.user = {
-					name: $(review).find('.user').attr('name'),
-					url: $(review).find('.user').attr('href')
-				};
-				reviewData.date = new Date($(review).find('.reviewDate').text());
-				reviewData.stars = $(review).find('.staticStar.p10').length;
-				return reviewData;
-			});
-			resolve(bookData);
-		}).catch(ex => reject(ex));
-	});		
+export const getBook = async (id) => {
+	const response = await fetch(`https://www.goodreads.com/book/show/${id}`);
+	const html = await response.text();
+	return await parseBookHTML(html);
 };
 
 // Scrape all books from group shelf
-export const getGroupShelf = (id, page, books) => {
+export const getGroupShelf = async (id, page, books) => {
 	if (!page) page = 1;
 	if (!books) books = [];
-	const shelfUrl = `https://www.goodreads.com/group/bookshelf/${id}?per_page=100&page=${page}&utf8=✓&view=covers`;
-	return new Promise((resolve, reject) => {
-		fetch(shelfUrl).then(response => response.text()).then(async (html) => {
-			const $ = cheerio.load(html);
-			const pageCount = +$([...$($('.next_page').parent()).find('a:not(.next_page)')].pop()).text();
-			const pageBooks = $('.rightContainer div > a').toArray().map(x => ($(x).attr('href').match(/show\/(\d*)/) || [])[1]);
-			chrome.runtime.sendMessage({ method: 'loading_group_shelf', data: { id, current: page, books: pageBooks, total: pageCount }});
-			if (pageBooks.length) {
-				setTimeout(async () => {
-					resolve(await getGroupShelf(id, ++page, books.concat(pageBooks)));
-				}, 1000);
-			}
-			else {
-				const title = $('#pageHeader a').attr('title');
-				const data = { timestamp: +(new Date()), id, books: books.filter((x, i, arr) => x && arr.indexOf(x) === i), title };
-				resolve(data);
-			}
-		}).catch(ex => reject(ex));
-	});
+	const response = await fetch(`https://www.goodreads.com/group/bookshelf/${id}?per_page=100&page=${page}&utf8=✓&view=covers`);
+	const html = await response.text();
+	const $ = cheerio.load(html);
+	const pageCount = +$([...$($('.next_page').parent()).find('a:not(.next_page)')].pop()).text();
+	const pageBooks = $('.rightContainer div > a').toArray().map(x => ($(x).attr('href').match(/show\/(\d*)/) || [])[1]);
+	chrome.runtime.sendMessage({ method: 'loading_group_shelf', data: { id, current: page, books: pageBooks, total: pageCount }});
+	if (pageBooks.length) {
+		return await getGroupShelf(id, ++page, books.concat(pageBooks));
+	}
+	else {
+		const title = $('#pageHeader a').attr('title');
+		return { timestamp: +(new Date()), id, books: books.filter((x, i, arr) => x && arr.indexOf(x) === i), title };
+	}
 };
 
 // Scrape all books from list
-export const getList = (id, page, books) => {
+export const getList = async (id, page, books) => {
 	if (!page) page = 1;
 	if (!books) books = [];
-	const listUrl = `https://www.goodreads.com/list/show/${id}?page=${page}`;
-	return new Promise((resolve, reject) => {
-		fetch(listUrl).then(response => response.text()).then(async (html) => {
-			const $ = cheerio.load(html);
-			const pageCount = +$([...$('.pagination a:not(.next_page)')].pop()).text();
-			const pageBooks = $('tr[itemtype="http://schema.org/Book"] div.u-anchorTarget').toArray().map(x => $(x).attr('id'));
-			chrome.runtime.sendMessage({ method: 'loading_list', data: { id, current: page, books: pageBooks, total: pageCount }});
-			if (pageBooks.length) {
-				setTimeout(async () => {
-					resolve(await getList(id, ++page, books.concat(pageBooks)));
-				}, 1000);
-			}
-			else {
-				const title = $('.leftContainer h1').text();
-				const description = $('.leftContainer .mediumText').text();
-				const data = { 
-					timestamp: +(new Date()),
-					id,
-					books: books.filter((x, i, arr) => x && arr.indexOf(x) === i),
-					title,
-					current: page,
-					total: page,
-					description,
-				};
-				resolve(data);
-			}
-		}).catch(ex => reject(ex));
-	});
+	const response = await fetch(`https://www.goodreads.com/list/show/${id}?page=${page}`);
+	const html = await response.text();
+	const $ = cheerio.load(html);
+	const pageCount = +$([...$('.pagination a:not(.next_page)')].pop()).text();
+	const pageBooks = $('tr[itemtype="http://schema.org/Book"] div.u-anchorTarget').toArray().map(x => $(x).attr('id'));
+	chrome.runtime.sendMessage({ method: 'loading_list', data: { id, current: page, books: pageBooks, total: pageCount }});
+	if (pageBooks.length) {
+		return await getList(id, ++page, books.concat(pageBooks));
+	}
+	else {
+		const title = $('.leftContainer h1').text();
+		const description = $('.leftContainer .mediumText').text();
+		return { 
+			timestamp: +(new Date()),
+			id,
+			books: books.filter((x, i, arr) => x && arr.indexOf(x) === i),
+			title,
+			current: page,
+			total: page,
+			description,
+		};
+	}
 };
