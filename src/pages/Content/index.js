@@ -109,6 +109,7 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 						setTimeout(loadLocalHTML, 1000);
 					}
 					else {
+						chrome.storage.local.set({[`goodreads_${book.id}`]: book });
 						loadRating(await cleanReadRating(book));
 					}
 				}
@@ -188,7 +189,7 @@ function loadChart(id, size, positive, negative, percent) {
 			values: [positive, negative],
 			labels: ['Clean', 'Not clean'],
 			marker: {
-				colors: ['green', 'red']
+				colors: ['#409D69', '#FA604A']
 			},
 			type: 'pie',
 			hole: .6,

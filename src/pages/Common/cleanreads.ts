@@ -31,7 +31,7 @@ export const useSettings = createChromeStorageStateHookLocal('cleanreads_setting
 
 export const parseBookHTML = async (html: string) => {
 	const $ = cheerio.load(html);
-	const bookData:any = { timestamp: +(new Date()), id: $('[data-book-id]').data('book-id') };
+	const bookData:any = { timestamp: +(new Date()), id: ($('[data-book-id]').data('book-id') as string).toString() };
 	bookData.title = $('#bookTitle').text().trim();
 	bookData.originalTitle = $('#bookDataBox .clearFloats:contains("Original Title") .infoBoxRowItem').text();
 	bookData.isbn = $('#bookDataBox .clearFloats:contains("ISBN") .infoBoxRowItem').text().trim().split('\n')[0];
