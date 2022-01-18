@@ -192,6 +192,7 @@ const matchHTML = (term : any, content : string, index : number, snippetLength :
 
 // Match term against
 const matchTerm = (term : any, content : string) => {
+	if (!term.term) return;
 	const regex = new RegExp(`(^|[^(${term.exclude.before.join`|`}|\\s*)])(\\W*)(${term.term})(\\W*)($|[^(${term.exclude.after.join`|`}|\\s*)])`);
 	return content.toLowerCase().match(regex);
 }
