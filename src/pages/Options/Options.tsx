@@ -10,7 +10,7 @@ interface Props {
 
 const Options: React.FC<Props> = ({title} : Props) => {
     const [settings, setSettings, isPersistent, error] = useSettings();
-    const [shelves, setShelves] = useState('');
+    const [loadUrl, setLoadUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [loadingValue, setLoadingValue] = useState(0);
     const [loadingMax, setLoadingMax] = useState(0);
@@ -56,34 +56,38 @@ const Options: React.FC<Props> = ({title} : Props) => {
         });
     }
 
-    function loadGenre() {
-        setLoading(true);
-        chrome.runtime.sendMessage({ method: 'get_genre', data: shelves }, response => {
-            setLoading(false);
-            if (response.cache) {
-                loadBooks(response.data);
-            }
-        });
-    }
+    function loadBooksFromUrl() {
+        const url = loadUrl;
+        const matchShelf = url.match(/\/(?:shelf\/show|genres)\/(?<id>[^\?\s#]+)/);
+        const matchList = url.match(/\/list\/show\/(?<id>[^\?\s#]+)/);
+        const matchGroupOrUserShelf = url.match(/\/(?:review\/list|group\/bookshelf)\/(?<id>[^\?\s#]+)(?:.(?!shelf))*(?:[\?&]shelf=(?<shelf>[^&\s]+))?/);
 
-    function loadGroupShelf() {
-        setLoading(true);
-        chrome.runtime.sendMessage({ method: 'get_group_shelf', data: shelves }, (response) => {
-            setLoading(false);
-            if (response.cache) {
-                loadBooks(response.data);
-            }
-        });
-    }
+        let method;
+        let data;
+        if (matchShelf?.groups?.id) {
+            method = 'get_shelf';
+            data = { id: matchShelf?.groups?.id };
+        }
+        else if (matchList?.groups?.id) {
+            method = 'get_list';
+            data = { id: matchList?.groups?.id };
+        }
+        else if (matchGroupOrUserShelf?.groups?.id) {
+            method = url.match('group') ? 'get_group_shelf' : 'get_user_shelf';
+            data = { id: matchGroupOrUserShelf?.groups?.id, shelf: matchGroupOrUserShelf?.groups?.shelf };
+        }
 
-    function loadList() {
-        setLoading(true);
-        chrome.runtime.sendMessage({ method: 'get_list', data: shelves }, response => {
-            setLoading(false);
-            if (response.cache) {
-                loadBooks(response.data);
-            }
-        });
+        if (method && data) {
+            setLoading(true);
+            setLoadingMax(0);
+            setLoadingValue(0);
+            chrome.runtime.sendMessage({ method, data }, response => {
+                setLoading(false);
+                if (response.cache) {
+                    loadBooks(response.data);
+                }
+            });
+        }
     }
 
     function loadBooks(response : any) {
@@ -130,16 +134,15 @@ const Options: React.FC<Props> = ({title} : Props) => {
                 </div>
                 <h2>Clean Book List:</h2>
                 <div>
-                    <input name='groupShelf' type='text' value={shelves} onChange={(e) => setShelves(e.target.value)} />
-                    <button className='cr-button' onClick={loadGenre} disabled={loading}>Load Genre</button>
-                    <button className='cr-button' onClick={loadList} disabled={loading}>Load List</button>
-                    <button className='cr-button' onClick={loadGroupShelf} disabled={loading}>Load Group Shelf</button>
+                    <input name='loadUrl' type='text' value={loadUrl} onChange={(e) => setLoadUrl(e.target.value)}
+                        placeholder='Enter URL for a genre, shelf, or list' />
+                    <button className='cr-button' onClick={loadBooksFromUrl} disabled={loading}>Load</button>
                 </div>
                 {
                     loading ?
-                    <progress value={loadingValue} max={loadingMax}></progress> : <></>
+                    <progress value={loadingMax ? loadingValue : undefined} max={loadingMax}></progress> : <></>
                 }
-                
+
                 <p><i>Genre can only load first 50 books if guest or first 1250 books if signed in.</i></p>
                 <p><b>Loaded books: </b>{settings.CLEAN_BOOKS.length}</p>
                 <div>

@@ -10,6 +10,10 @@
   margin-bottom: 5px;
 }
 
+input[name=loadUrl] {
+  width: 80%;
+}
+
 #crCleanBookList {
   margin-bottom: 15px;
   position: relative;

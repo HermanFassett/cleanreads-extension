@@ -1,5 +1,5 @@
 import { cleanReadRating, INITIAL_SETTINGS } from "../Common/cleanreads";
-import { getBook, getGenre, getGroupShelf, getList } from "./goodreads";
+import { getBook, getShelf, getGroupShelf, getList, getUserShelf } from "./goodreads";
 
 console.log('Cleanreads background service worker');
 
@@ -30,44 +30,65 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			}
 		});
 	}
-	else if (request.method === 'get_genre') {
-		const genreId = request.data;
-		const key = `goodreads_genre_${genreId}`;
+	else if (request.method === 'get_shelf') {
+		const shelfId = request.data.id;
+		const key = `goodreads_shelf_${shelfId}`;
 		chrome.storage.local.get([key], data => {
 			if (!data[key] || !data[key].timestamp || !data[key].title) {
-				console.log('Loading fresh data for get_genre', genreId);
-				getGenre(genreId).then(shelf => {
-					console.log('Loaded data for get_genre', genreId);
+				console.log('Loading fresh data for get_shelf', shelfId);
+				getShelf(shelfId).then(shelf => {
+					console.log('Loaded data for get_shelf', shelfId);
 					chrome.storage.local.set({ [key]: shelf });
 					sendResponse({ cache: false, data: shelf });
 				});
 			}
 			else {
-				console.log('Used cache for get_genre', genreId);
+				console.log('Used cache for get_shelf', shelfId);
 				sendResponse({ cache: true, data: data[key] });
 			}
 		});
 	}
 	else if (request.method === 'get_group_shelf') {
-		const shelfId = request.data;
-		const key = `goodreads_group_shelf_${shelfId}`;
+		const groupId = request.data.id;
+		const shelf = request.data.shelf;
+		const key = `goodreads_group_shelf_${groupId}_${shelf}`;
 		chrome.storage.local.get([key], data => {
 			if (!data[key] || !data[key].timestamp || !data[key].title) {
-				console.log('Loading fresh data for get_group_shelf', shelfId);
-				getGroupShelf(shelfId).then(shelf => {
-					console.log('Loaded data for get_group_shelf', shelfId);
-					chrome.storage.local.set({ [key]: shelf });
-					sendResponse({ cache: false, data: shelf });
+				console.log('Loading fresh data for get_group_shelf', groupId, shelf);
+				getGroupShelf(groupId, shelf).then(result => {
+					console.log('Loaded data for get_group_shelf', groupId, shelf);
+					chrome.storage.local.set({ [key]: result });
+					sendResponse({ cache: false, data: result });
 				});
 			}
 			else {
-				console.log('Used cache for get_group_shelf', shelfId);
+				console.log('Used cache for get_group_shelf', groupId, shelf);
+				sendResponse({ cache: true, data: data[key] });
+			}
+		});
+	}
+	else if (request.method === 'get_user_shelf') {
+		const userId = request.data.id;
+		const shelf = request.data.shelf;
+		const key = `goodreads_user_shelf_${userId}_${shelf}`;
+		chrome.storage.local.get([key], data => {
+			if (!data[key] || !data[key].timestamp) {
+				console.log('Loading fresh data for get_user_shelf', userId, shelf);
+				getUserShelf(userId, shelf).then(result => {
+					console.log('Loaded data for get_user_shelf', userId, shelf);
+					chrome.storage.local.set({ [key]: result });
+					console.log(key, result);
+					sendResponse({ cache: false, data: result });
+				});
+			}
+			else {
+				console.log('Used cache for get_user_shelf', userId, shelf);
 				sendResponse({ cache: true, data: data[key] });
 			}
 		});
 	}
 	else if (request.method === 'get_list') {
-		const listId = request.data;
+		const listId = request.data.id;
 		const key = `goodreads_list_${listId}`;
 		chrome.storage.local.get([key], data => {
 			if (!data[key] || !data[key].timestamp || !data[key].title) {
