@@ -10,9 +10,13 @@ Book genres, lists, shelves, and individual books can also all be added into a '
 
 ## Installation
 
-Cleanreads will be available from the Chrome web store.
+Cleanreads is available from the Chrome web store here:
+https://chrome.google.com/webstore/detail/cleanreads/cmlphkeobcbjgagedegbejlhlbnkniee
 
-To install from source code, after downloading and installing packages, run the following:
+An example Clean List containing 18k+ collated books can be downloaded here (right click -> Save As) and imported from the Cleanreads extension settings page:
+https://raw.githubusercontent.com/HermanFassett/cleanreads-extension/main/lists/cleanreads_full.json
+
+Alternatively, to install the extension from source code, after downloading and installing packages, run the following:
 ```
 NODE_ENV=production npm run build
 ```
