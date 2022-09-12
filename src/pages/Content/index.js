@@ -83,14 +83,15 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 		});
 
 		// Load full rating on book page
-		if (!!document.querySelector('#bookTitle')) {
+		if (!!document.querySelector('#bookTitle') || !!document.querySelector('[data-testId=bookTitle]')) {
 			const container = document.createElement('div');
 			container.id = 'cleanReadsRating';
 			container.className = 'u-bottomGrayBorder';
 			container.innerHTML = `
-				<h2 class='gr-h1 u-bottomGrayBorder' style='text-align:center'>Cleanreads Rating</h2>
-				<h2 class='uitext greyText' style='text-align:center'>Loading...</h2>`;
-			document.querySelector('.rightContainer').prepend(container);
+				<h2 class='gr-h1 u-bottomGrayBorder Text Text__title3' style='text-align:center'>Cleanreads Rating</h2>
+				<hr class="Divider Divider--largeMargin" role="presentation">
+				<h2 class='uitext greyText Text Text__title3 Text__regular' style='text-align:center'>Loading...</h2>`;
+			(document.querySelector('.rightContainer') || document.querySelector('.BookDetails')).prepend(container);
 
 			chrome.runtime.sendMessage({method: "get_book", data: currentId }, (response) => {
 				let attempts = 10;
@@ -118,12 +119,12 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 });
 
 function loadRating(book) {
-	console.log(book);
 	const {positive, negative, percent} = getRating(book.cleanReads);
 	const container = document.querySelector('#cleanReadsRating');
 
 	container.innerHTML = `
-		<h2 class='gr-h1 u-bottomGrayBorder' style='text-align:center'>Cleanreads Rating</h2>
+		<h2 class='gr-h1 u-bottomGrayBorderText Text__title3' style='text-align:center'>Cleanreads Rating</h2>
+		<hr class="Divider Divider--largeMargin" role="presentation">
 		${ percent !== null ?
 			`<div id="gd_${book.id}" class='crPieChart'></div>` :
 			`<h2 class='uitext greyText' style='text-align:center'>No rating</h2>`
@@ -143,16 +144,16 @@ function loadRating(book) {
 		if (lastSource !== res.source) {
 			switch(res.source) {
 				case SOURCES.DESCRIPTION:
-					container.innerHTML += '<h2 class="uitext greyText">Description:</h2>';
+					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Description:</h2>';
 					break;
 				case SOURCES.GENRE:
-					container.innerHTML += '<h2 class="uitext greyText">Genres:</h2>';
+					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Genres:</h2>';
 					break;
 				case SOURCES.SHELF:
-					container.innerHTML += '<h2 class="uitext greyText">Shelves:</h2>';
+					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Shelves:</h2>';
 					break;
 				case SOURCES.REVIEW:
-					container.innerHTML += '<h2 class="uitext greyText">Reviews:</h2>';
+					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Reviews:</h2>';
 					break;
 				default:
 					break;
@@ -163,7 +164,7 @@ function loadRating(book) {
 	});
 
 	const cleanButton = document.createElement('button');
-	cleanButton.className = 'gr-button';
+	cleanButton.className = 'gr-button Button Button--secondary Button--medium Button--block';
 	cleanButton.innerText = book.cleanReads.cleanRead ? 'Remove From Clean List' : 'Add To Clean List';
 	cleanButton.style.marginBottom = '15px';
 	cleanButton.onclick = async function(e) {
