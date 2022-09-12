@@ -13,7 +13,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*", "<all_urls>"],
+      "matches": ["http://*.goodreads.com/*", "https://*.goodreads.com/*"],
       "js": ["contentScript.bundle.js"],
       "css": ["content.styles.css"]
     }
