@@ -1,7 +1,10 @@
-import { cleanReadRating, INITIAL_SETTINGS } from "../Common/cleanreads";
-import { getBook, getShelf, getGroupShelf, getList, getUserShelf } from "./goodreads";
+import { cleanReadRating } from "../../cleanreads/cleanreads";
+import { INITIAL_SETTINGS } from "../../cleanreads/constants";
+import { GoodreadsV1Scraper } from "../../cleanreads/scrapers/goodreadsV1Scraper";
 
 console.log('Cleanreads background service worker');
+
+const scraper = new GoodreadsV1Scraper();
 
 chrome.runtime.onInstalled.addListener(() => {
 	console.log("Installed")
@@ -18,7 +21,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		chrome.storage.local.get([`goodreads_${bookId}`], data => {
 			if (!data[`goodreads_${bookId}`] || !data[`goodreads_${bookId}`].timestamp || !data[`goodreads_${bookId}`].title) {
 				console.log('Loading fresh data for get_book', bookId);
-				getBook(bookId).then(book => {
+				scraper.getBook(bookId).then(book => {
 					console.log('Loaded data for get_book', bookId);
 					chrome.storage.local.set({ [`goodreads_${bookId}`]: book });
 					cleanReadRating(book).then(response => sendResponse(response));
@@ -36,7 +39,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		chrome.storage.local.get([key], data => {
 			if (!data[key] || !data[key].timestamp || !data[key].title) {
 				console.log('Loading fresh data for get_shelf', shelfId);
-				getShelf(shelfId).then(shelf => {
+				scraper.getShelf(shelfId).then(shelf => {
 					console.log('Loaded data for get_shelf', shelfId);
 					chrome.storage.local.set({ [key]: shelf });
 					sendResponse({ cache: false, data: shelf });
@@ -55,7 +58,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		chrome.storage.local.get([key], data => {
 			if (!data[key] || !data[key].timestamp || !data[key].title) {
 				console.log('Loading fresh data for get_group_shelf', groupId, shelf);
-				getGroupShelf(groupId, shelf).then(result => {
+				scraper.getGroupShelf(groupId, shelf).then(result => {
 					console.log('Loaded data for get_group_shelf', groupId, shelf);
 					chrome.storage.local.set({ [key]: result });
 					sendResponse({ cache: false, data: result });
@@ -74,7 +77,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		chrome.storage.local.get([key], data => {
 			if (!data[key] || !data[key].timestamp) {
 				console.log('Loading fresh data for get_user_shelf', userId, shelf);
-				getUserShelf(userId, shelf).then(result => {
+				scraper.getUserShelf(userId, shelf).then(result => {
 					console.log('Loaded data for get_user_shelf', userId, shelf);
 					chrome.storage.local.set({ [key]: result });
 					console.log(key, result);
@@ -93,7 +96,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		chrome.storage.local.get([key], data => {
 			if (!data[key] || !data[key].timestamp || !data[key].title) {
 				console.log('Loading fresh data for get_list', listId);
-				getList(listId).then(shelf => {
+				scraper.getList(listId).then(shelf => {
 					console.log('Loaded data for get_list', listId);
 					chrome.storage.local.set({ [key]: shelf });
 					sendResponse({ cache: false, data: shelf });

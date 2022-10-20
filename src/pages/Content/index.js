@@ -1,4 +1,6 @@
-import { cleanReadRating, parseBookHTML, SOURCES } from "../Common/cleanreads";
+import { cleanReadRating } from "../../cleanreads/cleanreads";
+import { GoodreadsV1Parser } from "../../cleanreads/parsers/goodreadsV1Parser";
+import { SOURCES } from "../../cleanreads/constants";
 import Plotly from 'plotly.js-dist-min';
 
 chrome.storage.local.get(['cleanreads_settings'], data => {
@@ -104,7 +106,7 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 				}
 
 				async function loadLocalHTML() {
-					let book = await parseBookHTML(document.body.innerHTML);
+					let book = await new GoodreadsV1Parser().parseBookHTML(document.body.innerHTML);
 					if (!book.reviews.length && attempts--) {
 						setTimeout(loadLocalHTML, 1000);
 					}
