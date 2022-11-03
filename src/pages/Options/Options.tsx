@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useSettings, INITIAL_SETTINGS } from '../Common/cleanreads';
+import { useSettings } from '../../cleanreads/cleanreads';
+import { INITIAL_SETTINGS } from '../../cleanreads/constants';
 import './Options.css';
 import Files from 'react-files';
 
