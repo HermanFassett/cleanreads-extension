@@ -1,14 +1,54 @@
 import * as cheerio from 'cheerio';
-import { GoodreadsV1Parser } from '../parsers/goodreadsV1Parser';
+import { GoodreadsParser } from '../parsers/goodreadsParser';
 import { Book } from '../types/book';
 import { Bookshelf } from '../types/bookshelf';
 import { Scraper } from './baseScraper';
 
+async function getGoodreadsTab(): Promise<number> {
+	const tabs = await chrome.tabs.query({ url: '*://*.goodreads.com/*' });
+	let tab: chrome.tabs.Tab;
+	if (tabs.length === 0) {
+		tab = await chrome.tabs.create({ url: 'https://goodreads.com', active: false });
+	}
+	else {
+		tab = tabs[0];
+	}
+	return tab.id ?? -1;
+}
+
+async function addIframe(bookId: string) {
+	const iframe = document.createElement("iframe");
+	const loaded = new Promise(resolve => iframe.addEventListener('load', resolve));
+	iframe.src = `https://www.goodreads.com/book/show/${bookId}`;
+	document.body.appendChild(iframe);
+	await loaded;
+	const html = iframe.contentWindow?.document.body.innerHTML;
+	document.body.removeChild(iframe);
+	return html;
+}
+
+async function loadBookPage(bookId: string): Promise<string> {
+	return new Promise(async (resolve, reject) => {
+		const tabId = await getGoodreadsTab();
+		chrome.scripting.executeScript({
+			target: { tabId, allFrames: true },
+			func: addIframe,
+			args: [bookId],
+		}).then(html => {
+			if (html.length && html[0].result) {
+				resolve(html[0].result);
+			}
+			else {
+				reject("Failed to load book");
+			}
+		});
+	});
+}
+
 export class GoodreadsV1Scraper implements Scraper {
 	async getBook(id: string): Promise<any> {
-		const response = await fetch(`https://www.goodreads.com/book/show/${id}`, { credentials: 'omit' });
-		const html = await response.text();
-		return await new GoodreadsV1Parser().parseBookHTML(html);
+		const html = await loadBookPage(id);
+		return new GoodreadsParser().parseBookHTML(html);
 	}
 
 	async getShelf(id: string, page: number, title: string, books: Book[]): Promise<Bookshelf> {

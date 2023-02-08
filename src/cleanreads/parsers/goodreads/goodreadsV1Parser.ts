@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
-import { Bookdata } from '../types/bookdata';
-import { Parser } from "./baseParser";
+import { Bookdata } from '../../types/bookdata';
+import { Parser } from "../baseParser";
 
 export class GoodreadsV1Parser implements Parser {
 	parseBookHTML(html: string): Bookdata {

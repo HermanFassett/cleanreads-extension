@@ -1,6 +1,7 @@
 import { cleanReadRating } from "../../cleanreads/cleanreads";
 import { INITIAL_SETTINGS } from "../../cleanreads/constants";
 import { GoodreadsV1Scraper } from "../../cleanreads/scrapers/goodreadsV1Scraper";
+import { Method } from "../../cleanreads/types/method";
 
 console.log('Cleanreads background service worker');
 
@@ -16,7 +17,7 @@ chrome.runtime.onInstalled.addListener(() => {
 })
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	if (request.method === 'get_book') {
+	if (request.method === Method.GET_BOOK) {
 		const bookId = request.data;
 		chrome.storage.local.get([`goodreads_${bookId}`], data => {
 			if (!data[`goodreads_${bookId}`] || !data[`goodreads_${bookId}`].timestamp || !data[`goodreads_${bookId}`].title) {

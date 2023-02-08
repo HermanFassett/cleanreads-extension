@@ -1,6 +1,7 @@
 import { cleanReadRating } from "../../cleanreads/cleanreads";
-import { GoodreadsV1Parser } from "../../cleanreads/parsers/goodreadsV1Parser";
+import { GoodreadsParser } from "../../cleanreads/parsers/goodreadsParser";
 import { SOURCES } from "../../cleanreads/constants";
+import { Method } from "../../cleanreads/types/method";
 import Plotly from 'plotly.js-dist-min';
 
 chrome.storage.local.get(['cleanreads_settings'], data => {
@@ -64,7 +65,7 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 						button.innerText = 'Load';
 						button.onclick = function(e) {
 							e.target.disabled = true;
-							chrome.runtime.sendMessage({method: "get_book", data: bookId }, (response) => {
+							chrome.runtime.sendMessage({method: Method.GET_BOOK, data: bookId }, (response) => {
 								const { positive, negative, percent } = setRating(response, e.target);
 								loadChart(bookId, 60, positive, negative, percent);
 							});
@@ -95,10 +96,10 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 				<h2 class='uitext greyText Text Text__title3 Text__regular' style='text-align:center'>Loading...</h2>`;
 			(document.querySelector('.rightContainer') || document.querySelector('.BookDetails')).prepend(container);
 
-			chrome.runtime.sendMessage({method: "get_book", data: currentId }, (response) => {
+			chrome.runtime.sendMessage({method: Method.GET_BOOK, data: currentId }, (response) => {
 				let attempts = 10;
 
-				if (response.rating.reviews > 0 && response.reviews.length === 0) {
+				if (!response || (response.rating.reviews > 0 && response.reviews.length === 0)) {
 					loadLocalHTML();
 				}
 				else {
@@ -106,7 +107,7 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 				}
 
 				async function loadLocalHTML() {
-					let book = await new GoodreadsV1Parser().parseBookHTML(document.body.innerHTML);
+					let book = await new GoodreadsParser().parseBookHTML(document.body.innerHTML);
 					if (!book.reviews.length && attempts--) {
 						setTimeout(loadLocalHTML, 1000);
 					}

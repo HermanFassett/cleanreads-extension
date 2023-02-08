@@ -97,7 +97,7 @@ const matchHTML = (term : any, content : string, index : number, snippetLength :
 			break;
 	}
 	if (source !== SOURCES.DESCRIPTION && source != SOURCES.GENRE) {
-		html += ` (<a href='#${href}'>jump to</a> / <a href='${url}'>view</a>)`;
+		html += ` (<a href='${url}'>view</a>)`;
 	}
 	return html;
 }
