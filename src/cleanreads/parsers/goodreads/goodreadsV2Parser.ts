@@ -11,14 +11,12 @@ export class GoodreadsV2Parser implements Parser {
 		const book = Object.keys(apollo).filter(x => x.indexOf('Book:') == 0)
 			.map(x => apollo[x])
 			.find(x => !!x.details);
-		console.log(book);
 		const work = apollo[Object.keys(apollo).find(x => x.indexOf('Work:') == 0) ?? 0];
 		const reviews = Object.keys(apollo).filter(x => x.indexOf('Review:') == 0).map(x => apollo[x]);
-		console.log(reviews);
 
 		const bookData: Bookdata = { 
 			timestamp: +(new Date()),
-			id: book.legacyId,
+			id: book.legacyId.toString(),
 			title: book.title,
 			originalTitle: work.details.originalTitle,
 			isbn: book.details.isbn,
