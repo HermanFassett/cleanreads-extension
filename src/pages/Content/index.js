@@ -3,6 +3,7 @@ import { GoodreadsParser } from "../../cleanreads/parsers/goodreadsParser";
 import { SOURCES } from "../../cleanreads/constants";
 import { Method } from "../../cleanreads/types/method";
 import Plotly from 'plotly.js-dist-min';
+import * as HtmlSnippets from './htmlSnippets';
 
 chrome.storage.local.get(['cleanreads_settings'], data => {
 	if (data.cleanreads_settings.ENABLED) {
@@ -91,9 +92,8 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 			container.id = 'cleanReadsRating';
 			container.className = 'u-bottomGrayBorder';
 			container.innerHTML = `
-				<h2 class='gr-h1 u-bottomGrayBorder Text Text__title3' style='text-align:center'>Cleanreads Rating</h2>
 				<hr class="Divider Divider--largeMargin" role="presentation">
-				<h2 class='uitext greyText Text Text__title3 Text__regular' style='text-align:center'>Loading...</h2>`;
+				${HtmlSnippets.loadingSnippet}`;
 			(document.querySelector('.rightContainer') || document.querySelector('.BookDetails')).prepend(container);
 
 			chrome.runtime.sendMessage({method: Method.GET_BOOK, data: currentId }, (response) => {
@@ -125,21 +125,10 @@ function loadRating(book) {
 	const {positive, negative, percent} = getRating(book.cleanReads);
 	const container = document.querySelector('#cleanReadsRating');
 
-	container.innerHTML = `
-		<h2 class='gr-h1 u-bottomGrayBorderText Text__title3' style='text-align:center'>Cleanreads Rating</h2>
-		<hr class="Divider Divider--largeMargin" role="presentation">
-		${ percent !== null ?
-			`<div id="gd_${book.id}" class='crPieChart'></div>` :
-			`<h2 class='uitext greyText' style='text-align:center'>No rating</h2>`
-		}
-	`;
-
-	if (percent !== null) {
-		loadChart(book.id, 90, positive, negative, percent, true);
-	}
+	const reviewContainer = document.createElement("div");
 
 	if (book.cleanReads.cleanRead) {
-		container.innerHTML += '<h2 class="uitext contentClean">Found in Clean Book List</h2>'
+		reviewContainer.innerHTML += '<h2 class="uitext contentClean">Found in Clean Book List</h2>'
 	}
 
 	let lastSource = -1;
@@ -147,35 +136,35 @@ function loadRating(book) {
 		if (lastSource !== res.source) {
 			switch(res.source) {
 				case SOURCES.DESCRIPTION:
-					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Description:</h2>';
+					reviewContainer.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Description:</h2>';
 					break;
 				case SOURCES.GENRE:
-					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Genres:</h2>';
+					reviewContainer.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Genres:</h2>';
 					break;
 				case SOURCES.SHELF:
-					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Shelves:</h2>';
+					reviewContainer.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Shelves:</h2>';
 					break;
 				case SOURCES.REVIEW:
-					container.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Reviews:</h2>';
+					reviewContainer.innerHTML += '<h2 class="uitext greyText Text Text__title3 Text__regular">Reviews:</h2>';
 					break;
 				default:
 					break;
 			}
 		}
-		container.innerHTML += res.matchHTML;
+		reviewContainer.innerHTML += res.matchHTML;
 		lastSource = res.source;
 	});
 
 	const cleanButton = document.createElement('button');
-	cleanButton.className = 'gr-button Button Button--secondary Button--medium Button--block';
-	cleanButton.innerText = book.cleanReads.cleanRead ? 'Remove From Clean List' : 'Add To Clean List';
+	cleanButton.className = 'Button Button--primary Button--small Button--block';
+	cleanButton.innerText = book.cleanReads.cleanRead ? 'Remove' : 'Add';
+	cleanButton.title = book.cleanReads.cleanRead ? 'Remove from Clean List' : 'Add to Clean List';
 	cleanButton.style.marginBottom = '15px';
 	cleanButton.onclick = async function(e) {
 		e.target.disabled = true;
 		const data = await chrome.storage.local.get(['cleanreads_settings']);
 		if (book.cleanReads.cleanRead) {
 			data.cleanreads_settings.CLEAN_BOOKS = data.cleanreads_settings.CLEAN_BOOKS.filter(x => x.id !== book.id);
-			e.target.innerText = 'Add To Clean List';
 
 		}
 		else {
@@ -185,7 +174,6 @@ function loadRating(book) {
 					title: book.title,
 					cover: book.cover,
 				}]).sort((a, b) => a.title.localeCompare(b.title));
-			e.target.innerText = 'Remove From Clean List';
 		}
 		
 		await chrome.storage.local.set({ 'cleanreads_settings': data.cleanreads_settings });
@@ -193,7 +181,29 @@ function loadRating(book) {
 		book.cleanReads.cleanRead = !book.cleanReads.cleanRead;
 		loadRating(book);
 	}
-	container.append(cleanButton);
+	container.innerHTML = `
+		<hr class="Divider Divider--largeMargin" role="presentation">
+		${HtmlSnippets.reviewSnippet(percent !== null ?
+			`<div id="gd_${book.id}" class='crPieChart'></div>` :
+			`<h2 class='uitext greyText' style='text-align:center'>No rating</h2>`,
+			reviewContainer.innerHTML,
+			book
+		)}
+	`;
+	container.querySelector('#gr_cleanlistBtn').appendChild(cleanButton);
+	container.querySelector('#gr_moreBtn').onclick = function(e) {
+		const expandedClass = 'TruncatedContent__text--expanded';
+		const content = document.querySelector('#gr_truncatedContent');
+		if (!content.classList.contains(expandedClass)) {
+			this.parentElement.removeChild(this);
+			content.classList.add(expandedClass);
+			document.querySelector('#gr_gradient').classList.remove('TruncatedContent__gradientOverlay');
+		}
+	}
+
+	if (percent !== null) {
+		loadChart(book.id, 90, positive, negative, percent, true);
+	}
 }
 
 // Get positives, negatives, and percent of rating
@@ -221,7 +231,7 @@ function loadChart(id, size, positive, negative, percent) {
 			values: [positive, negative],
 			labels: ['Clean', 'Not clean'],
 			marker: {
-				colors: ['#409D69', '#FA604A']
+				colors: ['#3F8363', '#D54A23']
 			},
 			type: 'pie',
 			hole: .6,

@@ -1,6 +1,5 @@
 #cleanReadsRating {
 	margin-bottom: 15px;
-	text-align: center;
 }
 #cleanReadsRating .progress-pie-color {
 	margin: 15px 0 10px 0;
@@ -10,6 +9,6 @@
   transform: translateX(-50%);
 }
 .contentComment { padding: 5px; }
-.contentClean { color: green; }
-.contentNotClean { color: red; }
+.contentClean { color: #3F8363; }
+.contentNotClean { color: #d54a23; }
 .contentUnknown { color: blue; }
