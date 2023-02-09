@@ -18,6 +18,7 @@ async function getGoodreadsTab(): Promise<number> {
 
 async function addIframe(bookId: string) {
 	const iframe = document.createElement("iframe");
+	iframe.hidden = true;
 	const loaded = new Promise(resolve => iframe.addEventListener('load', resolve));
 	iframe.src = `https://www.goodreads.com/book/show/${bookId}`;
 	document.body.appendChild(iframe);

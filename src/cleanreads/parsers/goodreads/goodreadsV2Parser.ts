@@ -7,12 +7,10 @@ export class GoodreadsV2Parser implements Parser {
 		const $ = cheerio.load(html, { xmlMode: true });
 		const nextData = JSON.parse($("#__NEXT_DATA__").text());
 		const apollo = nextData.props.pageProps.apolloState;
-		console.log(apollo);
-		const book = Object.keys(apollo).filter(x => x.indexOf('Book:') == 0)
-			.map(x => apollo[x])
-			.find(x => !!x.details);
-		const work = apollo[Object.keys(apollo).find(x => x.indexOf('Work:') == 0) ?? 0];
-		const reviews = Object.keys(apollo).filter(x => x.indexOf('Review:') == 0).map(x => apollo[x]);
+		const book: any = Object.values(apollo).find((x: any) => x.__typename === 'Book' && !!x.details);
+		const work: any = apollo[book.work.__ref];
+		const reviews: any = Object.values(apollo).filter((x: any) => x.__typename === 'Review');
+		const authors: any = Object.values(apollo).filter((x: any) => x.__typename === 'Contributor' && !!x.name);
 
 		const bookData: Bookdata = { 
 			timestamp: +(new Date()),
@@ -26,27 +24,27 @@ export class GoodreadsV2Parser implements Parser {
 			format: book.details.format,
 			published: book.details.publicationTime,
 			publisher: book.details.publisher,
-			series: [] ?? $('#bookDataBox .clearFloats:contains("Series") .infoBoxRowItem a').toArray().map(series => {
-			const match = $(series).text().match(/(^.+) #([0-9]+)$/)
+			series: book.bookSeries.map((x: any) => {
+				const ref = apollo[x.series.__ref];
 				return {
-					name: match && match.length > 1 ? match[1] : $(series).text(),
-					url: $(series).attr('href'),
-					number: match && match.length > 2 ? +match[2] : -1
+					name: ref.title,
+					url: ref.webUrl,
+					number: x.userPosition,
 				}
 			}),
-			authors: [] ?? $('#bookAuthors .authorName').toArray().map(author => {
+			authors: authors.map((author: any) => {
 				return {
-					name: $(author).text(),
-					url: $(author).attr('href'),
-					goodreadsAuthor: $(author).parent().text().indexOf('(Goodreads Author)') > -1
+					name: author.name,
+					url: author.webUrl,
+					goodreadsAuthor: author.isGrAuthor,
 				}
-			}).filter((x, i, arr) => arr.findIndex(y => y.url === x.url) === i),
+			}),
 			genres: book.bookGenres.map((genre: any) => {
 				return {
 					name: genre.genre.name,
 					url: genre.genre.webUrl,
 				}
-			}), //.filter((x, i, arr) => arr.findIndex(y => y.name === x.name) === i),
+			}),
 			rating: {
 				stars: work.stats.averageRating,
 				ratings: work.stats.ratingsCount,
@@ -55,7 +53,8 @@ export class GoodreadsV2Parser implements Parser {
 			cover: book.imageUrl,
 			description: book['description({"stripped":true})'],
 			descriptionHTML: book.description,
-			reviews: reviews.filter(x => x.shelving).map((review: any) => {
+			reviews: reviews.filter((x: any) => x.shelving).map((review: any) => {
+				const user = apollo[review.creator.__ref];
 				return {
 					id: review.id,
 					shelves: review.shelving.taggings.map((tag: any) => {
@@ -66,13 +65,12 @@ export class GoodreadsV2Parser implements Parser {
 					}),
 					text: review.text,
 					url: review.shelving.webUrl,
-					user: { name: 'hi', url: '' },
+					user: { name: user.name, url: user.webUrl },
 					date: review.createdAt,
 					stars: review.rating,
 				};
 			}),
 		};
-		console.log(bookData);
 		return bookData;
 	}
 }
