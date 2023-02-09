@@ -126,7 +126,7 @@ export class GoodreadsV1Scraper implements Scraper {
 		const pageCount = +$($($('.next_page').parent()).find('a:not(.next_page)').last()).text();
 		const pageBooks: Book[] = $('.bookalike').toArray().map(x => {
 			return {
-				id: $(x).find('[data-resource-id]').data('resource-id') as string,
+				id: $(x).find('[data-resource-id]').data('resource-id') + '',
 				title: $(x).find('.title .value a').attr('title'),
 				cover: $(x).find('.cover img').attr('src'),
 			};
