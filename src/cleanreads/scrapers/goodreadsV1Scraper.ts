@@ -1,14 +1,56 @@
 import * as cheerio from 'cheerio';
-import { GoodreadsV1Parser } from '../parsers/goodreadsV1Parser';
+import { GoodreadsParser } from '../parsers/goodreadsParser';
 import { Book } from '../types/book';
 import { Bookshelf } from '../types/bookshelf';
+import { Method } from '../types/method';
 import { Scraper } from './baseScraper';
+
+async function getGoodreadsTab(): Promise<number> {
+	const tabs = await chrome.tabs.query({ url: '*://*.goodreads.com/*' });
+	let tab: chrome.tabs.Tab;
+	if (tabs.length === 0) {
+		tab = await chrome.tabs.create({ url: 'https://goodreads.com', active: false });
+	}
+	else {
+		tab = tabs[0];
+	}
+	return tab.id ?? -1;
+}
+
+async function addIframe(bookId: string) {
+	const iframe = document.createElement("iframe");
+	iframe.hidden = true;
+	const loaded = new Promise(resolve => iframe.addEventListener('load', resolve));
+	iframe.src = `https://www.goodreads.com/book/show/${bookId}`;
+	document.body.appendChild(iframe);
+	await loaded;
+	const html = iframe.contentWindow?.document.body.innerHTML;
+	document.body.removeChild(iframe);
+	return html;
+}
+
+async function loadBookPage(bookId: string): Promise<string> {
+	return new Promise(async (resolve, reject) => {
+		const tabId = await getGoodreadsTab();
+		chrome.scripting.executeScript({
+			target: { tabId, allFrames: true },
+			func: addIframe,
+			args: [bookId],
+		}).then(html => {
+			if (html.length && html[0].result) {
+				resolve(html[0].result);
+			}
+			else {
+				reject("Failed to load book");
+			}
+		});
+	});
+}
 
 export class GoodreadsV1Scraper implements Scraper {
 	async getBook(id: string): Promise<any> {
-		const response = await fetch(`https://www.goodreads.com/book/show/${id}`, { credentials: 'omit' });
-		const html = await response.text();
-		return await new GoodreadsV1Parser().parseBookHTML(html);
+		const html = await loadBookPage(id);
+		return new GoodreadsParser().parseBookHTML(html);
 	}
 
 	async getShelf(id: string, page: number, title: string, books: Book[]): Promise<Bookshelf> {
@@ -25,7 +67,7 @@ export class GoodreadsV1Scraper implements Scraper {
 				cover: $(x).find('img').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_genre', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_GENRE, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length && pageCount) {
 			return await this.getShelf(id, ++page, $('.genreHeader').text().trim().slice(0, -6), books.concat(pageBooks));
 		}
@@ -58,7 +100,7 @@ export class GoodreadsV1Scraper implements Scraper {
 				cover: $(x).find('img').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_group_shelf', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_GROUP_SHELF, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length) {
 			return await this.getGroupShelf(id, shelf, ++page, books.concat(pageBooks));
 		}
@@ -84,12 +126,12 @@ export class GoodreadsV1Scraper implements Scraper {
 		const pageCount = +$($($('.next_page').parent()).find('a:not(.next_page)').last()).text();
 		const pageBooks: Book[] = $('.bookalike').toArray().map(x => {
 			return {
-				id: $(x).find('[data-resource-id]').data('resource-id') as string,
+				id: $(x).find('[data-resource-id]').data('resource-id') + '',
 				title: $(x).find('.title .value a').attr('title'),
 				cover: $(x).find('.cover img').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_group_shelf', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_GROUP_SHELF, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length) {
 			return await this.getUserShelf(id, shelf, ++page, books.concat(pageBooks));
 		}
@@ -117,7 +159,7 @@ export class GoodreadsV1Scraper implements Scraper {
 				cover: $(x).find('.bookCover').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_list', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_LIST, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length) {
 			return await this.getList(id, ++page, books.concat(pageBooks));
 		}

@@ -27,7 +27,9 @@ export const cleanReadRating = async (book: any) => {
 	// Reviews
 	for (let i = 0; i < book.reviews.length; i++) {
 		const review = book.reviews[i];
-		results = results.concat(searchContent(review.text, SOURCES.REVIEW, settings, review.id, review.url));
+		// Parse any HTML in reviews so snippets are always displayed correctly
+		const reviewText = cheerio.load(review.text, null, false).text();
+		results = results.concat(searchContent(reviewText, SOURCES.REVIEW, settings, review.id, review.url));
 	};
 	// Return rating object with all data
 	book.cleanReads = {
@@ -50,11 +52,11 @@ const searchContent = (content : string, source : number, settings : any, href ?
                 term,
                 source,
                 content,
-                index: (<number>contentMatch?.index) + contentMatch[1].length + contentMatch[2].length,
+                index: (contentMatch.index ?? 0) + contentMatch[0].indexOf(contentMatch.groups?.term ?? ''),
                 positive: true,
                 matchHTML: ''
             };
-            result.matchHTML = matchHTML(contentMatch[3], content, result.index, settings.SNIPPET_HALF_LENGTH, true, source, href, url);
+            result.matchHTML = matchHTML(contentMatch.groups?.term, content, result.index, settings.SNIPPET_HALF_LENGTH, true, source, href, url);
             results.push(result);
         }
     });
@@ -66,11 +68,11 @@ const searchContent = (content : string, source : number, settings : any, href ?
                 term,
                 source,
                 content,
-                index: (<number>contentMatch?.index) + contentMatch[1].length + contentMatch[2].length,
+                index: (contentMatch.index ?? 0) + contentMatch[0].indexOf(contentMatch.groups?.term ?? ''),
                 positive: false,
                 matchHTML: ''
             };
-            result.matchHTML = matchHTML(contentMatch[3], content, result.index, settings.SNIPPET_HALF_LENGTH, false, source, href, url);
+            result.matchHTML = matchHTML(contentMatch.groups?.term, content, result.index, settings.SNIPPET_HALF_LENGTH, false, source, href, url);
             results.push(result);
         }
     });
@@ -97,7 +99,7 @@ const matchHTML = (term : any, content : string, index : number, snippetLength :
 			break;
 	}
 	if (source !== SOURCES.DESCRIPTION && source != SOURCES.GENRE) {
-		html += ` (<a href='#${href}'>jump to</a> / <a href='${url}'>view</a>)`;
+		html += ` (<a href='${url}'>view</a>)`;
 	}
 	return html;
 }
@@ -105,6 +107,11 @@ const matchHTML = (term : any, content : string, index : number, snippetLength :
 // Match term against
 const matchTerm = (term : any, content : string) => {
 	if (!term.term) return;
-	const regex = new RegExp(`(^|[^(${term.exclude.before.join`|`}|\\s*)])(\\W*)(${term.term})(\\W*)($|[^(${term.exclude.after.join`|`}|\\s*)])`);
+	const regex = new RegExp(
+		`${term.exclude.before.length ?
+			`(^|(?<!${term.exclude.before.join`\\s*|`}\\s*))(\\W*)` : ''
+		}(?<term>${term.term})${term.exclude.after.length ? 
+			`(\\W*)($|(?!\\s*${term.exclude.after.join`|\\s*`}))` : ''
+		}`);
 	return content.toLowerCase().match(regex);
 }
