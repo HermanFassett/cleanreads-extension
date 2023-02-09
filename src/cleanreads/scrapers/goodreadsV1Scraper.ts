@@ -2,6 +2,7 @@ import * as cheerio from 'cheerio';
 import { GoodreadsParser } from '../parsers/goodreadsParser';
 import { Book } from '../types/book';
 import { Bookshelf } from '../types/bookshelf';
+import { Method } from '../types/method';
 import { Scraper } from './baseScraper';
 
 async function getGoodreadsTab(): Promise<number> {
@@ -66,7 +67,7 @@ export class GoodreadsV1Scraper implements Scraper {
 				cover: $(x).find('img').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_genre', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_GENRE, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length && pageCount) {
 			return await this.getShelf(id, ++page, $('.genreHeader').text().trim().slice(0, -6), books.concat(pageBooks));
 		}
@@ -99,7 +100,7 @@ export class GoodreadsV1Scraper implements Scraper {
 				cover: $(x).find('img').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_group_shelf', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_GROUP_SHELF, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length) {
 			return await this.getGroupShelf(id, shelf, ++page, books.concat(pageBooks));
 		}
@@ -130,7 +131,7 @@ export class GoodreadsV1Scraper implements Scraper {
 				cover: $(x).find('.cover img').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_group_shelf', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_GROUP_SHELF, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length) {
 			return await this.getUserShelf(id, shelf, ++page, books.concat(pageBooks));
 		}
@@ -158,7 +159,7 @@ export class GoodreadsV1Scraper implements Scraper {
 				cover: $(x).find('.bookCover').attr('src'),
 			};
 		});
-		chrome.runtime.sendMessage({ method: 'loading_list', data: { id, current: page, books: pageBooks, total: pageCount }});
+		chrome.runtime.sendMessage({ method: Method.LOADING_LIST, data: { id, current: page, books: pageBooks, total: pageCount }});
 		if (pageBooks.length) {
 			return await this.getList(id, ++page, books.concat(pageBooks));
 		}

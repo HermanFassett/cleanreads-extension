@@ -3,6 +3,7 @@ import { useSettings } from '../../cleanreads/cleanreads';
 import { INITIAL_SETTINGS } from '../../cleanreads/constants';
 import './Options.css';
 import Files from 'react-files';
+import { Method } from '../../cleanreads/types/method';
 
 interface Props {
     title: string;
@@ -19,7 +20,7 @@ const Options: React.FC<Props> = ({title} : Props) => {
 
     if (!chrome.runtime.onMessage.hasListeners()) {
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-            if (request.method === 'loading_list' || request.method === 'loading_group_shelf' || request.method === 'loading_genre') {
+            if (request.method === Method.LOADING_LIST || request.method === Method.LOADING_GROUP_SHELF || request.method === Method.LOADING_GENRE) {
                 loadBooks(request.data);
             }
             return true;
@@ -66,15 +67,15 @@ const Options: React.FC<Props> = ({title} : Props) => {
         let method;
         let data;
         if (matchShelf?.groups?.id) {
-            method = 'get_shelf';
+            method = Method.GET_SHELF;
             data = { id: matchShelf?.groups?.id };
         }
         else if (matchList?.groups?.id) {
-            method = 'get_list';
+            method = Method.GET_LIST;
             data = { id: matchList?.groups?.id };
         }
         else if (matchGroupOrUserShelf?.groups?.id) {
-            method = url.match('group') ? 'get_group_shelf' : 'get_user_shelf';
+            method = url.match('group') ? Method.GET_GROUP_SHELF : Method.GET_USER_SHELF;
             data = { id: matchGroupOrUserShelf?.groups?.id, shelf: matchGroupOrUserShelf?.groups?.shelf };
         }
 

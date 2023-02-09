@@ -34,7 +34,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			}
 		});
 	}
-	else if (request.method === 'get_shelf') {
+	else if (request.method === Method.GET_SHELF) {
 		const shelfId = request.data.id;
 		const key = `goodreads_shelf_${shelfId}`;
 		chrome.storage.local.get([key], data => {
@@ -52,7 +52,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			}
 		});
 	}
-	else if (request.method === 'get_group_shelf') {
+	else if (request.method === Method.GET_GROUP_SHELF) {
 		const groupId = request.data.id;
 		const shelf = request.data.shelf;
 		const key = `goodreads_group_shelf_${groupId}_${shelf}`;
@@ -71,7 +71,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			}
 		});
 	}
-	else if (request.method === 'get_user_shelf') {
+	else if (request.method === Method.GET_USER_SHELF) {
 		const userId = request.data.id;
 		const shelf = request.data.shelf;
 		const key = `goodreads_user_shelf_${userId}_${shelf}`;
@@ -91,7 +91,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 			}
 		});
 	}
-	else if (request.method === 'get_list') {
+	else if (request.method === Method.GET_LIST) {
 		const listId = request.data.id;
 		const key = `goodreads_list_${listId}`;
 		chrome.storage.local.get([key], data => {
