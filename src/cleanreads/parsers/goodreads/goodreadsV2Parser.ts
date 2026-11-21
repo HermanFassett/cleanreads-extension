@@ -53,22 +53,25 @@ export class GoodreadsV2Parser implements Parser {
 			cover: book.imageUrl,
 			description: book['description({"stripped":true})'],
 			descriptionHTML: book.description,
-			reviews: reviews.filter((x: any) => x.shelving).map((review: any) => {
+			reviews: reviews.flatMap((review: any) => {
+				const shelving = review.shelving?.__ref ? apollo[review.shelving.__ref] : review.shelving;
+				if (!shelving) return [];
+
 				const user = apollo[review.creator.__ref];
-				return {
+				return [{
 					id: review.id,
-					shelves: review.shelving.taggings.map((tag: any) => {
+					shelves: (shelving.taggings ?? []).map((tag: any) => {
 						return {
 							name: tag.tag.name,
 							url: tag.tag.webUrl,
 						}
 					}),
 					text: review.text,
-					url: review.shelving.webUrl,
+					url: shelving.webUrl,
 					user: { name: user.name, url: user.webUrl },
 					date: review.createdAt,
 					stars: review.rating,
-				};
+				}];
 			}),
 		};
 		return bookData;

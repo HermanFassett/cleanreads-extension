@@ -20,31 +20,41 @@ async function getGoodreadsTab(): Promise<number> {
 async function addIframe(bookId: string) {
 	const iframe = document.createElement("iframe");
 	iframe.hidden = true;
-	const loaded = new Promise(resolve => iframe.addEventListener('load', resolve));
-	iframe.src = `https://www.goodreads.com/book/show/${bookId}`;
-	document.body.appendChild(iframe);
-	await loaded;
-	const html = iframe.contentWindow?.document.body.innerHTML;
-	document.body.removeChild(iframe);
-	return html;
+	let timeout: number | undefined;
+	try {
+		await new Promise<void>((resolve, reject) => {
+			iframe.addEventListener('load', () => resolve(), { once: true });
+			timeout = window.setTimeout(() => reject(new Error('Goodreads book page timed out')), 15000);
+			iframe.src = `https://www.goodreads.com/book/show/${bookId}`;
+			document.body.appendChild(iframe);
+		});
+		return iframe.contentWindow?.document.body.innerHTML;
+	} finally {
+		window.clearTimeout(timeout);
+		iframe.remove();
+	}
 }
 
 async function loadBookPage(bookId: string): Promise<string> {
-	return new Promise(async (resolve, reject) => {
-		const tabId = await getGoodreadsTab();
-		chrome.scripting.executeScript({
-			target: { tabId, allFrames: true },
-			func: addIframe,
-			args: [bookId],
-		}).then(html => {
-			if (html.length && html[0].result) {
-				resolve(html[0].result);
-			}
-			else {
-				reject("Failed to load book");
-			}
-		});
+	let timeout: ReturnType<typeof setTimeout> | undefined;
+	const deadline = new Promise<never>((_, reject) => {
+		timeout = setTimeout(() => reject(new Error('Goodreads book request timed out')), 20000);
 	});
+
+	try {
+		const frameRequest = getGoodreadsTab().then(tabId =>
+			chrome.scripting.executeScript({
+				target: { tabId },
+				func: addIframe,
+				args: [bookId],
+			})
+		);
+		const [frame] = await Promise.race([frameRequest, deadline]);
+		if (!frame?.result) throw new Error('Goodreads book page returned no HTML');
+		return frame.result;
+	} finally {
+		if (timeout !== undefined) clearTimeout(timeout);
+	}
 }
 
 export class GoodreadsV1Scraper implements Scraper {
