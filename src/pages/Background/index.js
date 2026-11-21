@@ -19,18 +19,22 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	if (request.method === Method.GET_BOOK) {
 		const bookId = request.data;
-		chrome.storage.local.get([`goodreads_${bookId}`], data => {
-			if (!data[`goodreads_${bookId}`] || !data[`goodreads_${bookId}`].timestamp || !data[`goodreads_${bookId}`].title) {
-				console.log('Loading fresh data for get_book', bookId);
-				scraper.getBook(bookId).then(book => {
+		chrome.storage.local.get([`goodreads_${bookId}`], async data => {
+			try {
+				let book = data[`goodreads_${bookId}`];
+				if (!book?.timestamp || !book.title) {
+					console.log('Loading fresh data for get_book', bookId);
+					book = await scraper.getBook(bookId);
 					console.log('Loaded data for get_book', bookId);
 					chrome.storage.local.set({ [`goodreads_${bookId}`]: book });
-					cleanReadRating(book).then(response => sendResponse(response));
-				});
-			}
-			else {
-				console.log('Used cache for get_book', bookId);
-				cleanReadRating(data[`goodreads_${bookId}`]).then(response => sendResponse(response));
+				}
+				else {
+					console.log('Used cache for get_book', bookId);
+				}
+				sendResponse(await cleanReadRating(book));
+			} catch (error) {
+				console.error('Failed to load Cleanreads rating', bookId, error);
+				sendResponse(null);
 			}
 		});
 	}

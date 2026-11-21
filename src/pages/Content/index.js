@@ -64,10 +64,15 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 						const button = document.createElement('button');
 						button.className = 'gr-button';
 						button.innerText = 'Load';
-						button.onclick = function(e) {
-							e.target.disabled = true;
+						button.onclick = function() {
+							button.disabled = true;
 							chrome.runtime.sendMessage({method: Method.GET_BOOK, data: bookId }, (response) => {
-								const { positive, negative, percent } = setRating(response, e.target);
+								if (chrome.runtime.lastError || !response) {
+									button.innerText = 'Retry';
+									button.disabled = false;
+									return;
+								}
+								const { positive, negative, percent } = setRating(response, button);
 								loadChart(bookId, 60, positive, negative, percent);
 							});
 						}
@@ -88,33 +93,41 @@ chrome.storage.local.get(['cleanreads_settings'], data => {
 
 		// Load full rating on book page
 		if (!!document.querySelector('#bookTitle') || !!document.querySelector('[data-testId=bookTitle]')) {
+			const divider = '<hr class="Divider Divider--largeMargin" role="presentation">';
 			const container = document.createElement('div');
 			container.id = 'cleanReadsRating';
 			container.className = 'u-bottomGrayBorder';
-			container.innerHTML = `
-				<hr class="Divider Divider--largeMargin" role="presentation">
-				${HtmlSnippets.loadingSnippet}`;
+			container.innerHTML = divider + HtmlSnippets.loadingSnippet;
 			(document.querySelector('.rightContainer') || document.querySelector('.BookDetails')).prepend(container);
 
-			chrome.runtime.sendMessage({method: Method.GET_BOOK, data: currentId }, (response) => {
+			chrome.runtime.sendMessage({method: Method.GET_BOOK, data: currentId }, async (response) => {
 				let attempts = 10;
 
-				if (!response || (response.rating.reviews > 0 && response.reviews.length === 0)) {
-					loadLocalHTML();
-				}
-				else {
-					loadRating(response);
+				try {
+					if (chrome.runtime.lastError || !response || (response.rating.reviews > 0 && response.reviews.length === 0)) {
+						await loadLocalHTML();
+					}
+					else {
+						loadRating(response);
+					}
+				} catch (error) {
+					showLoadError(error);
 				}
 
 				async function loadLocalHTML() {
-					let book = await new GoodreadsParser().parseBookHTML(document.body.innerHTML);
+					const book = await new GoodreadsParser().parseBookHTML(document.body.innerHTML);
 					if (!book.reviews.length && attempts--) {
-						setTimeout(loadLocalHTML, 1000);
+						setTimeout(() => loadLocalHTML().catch(showLoadError), 1000);
 					}
 					else {
 						chrome.storage.local.set({[`goodreads_${book.id}`]: book });
 						loadRating(await cleanReadRating(book));
 					}
+				}
+
+				function showLoadError(error) {
+					console.error('Failed to load Cleanreads rating', currentId, error);
+					container.innerHTML = divider + '<p role="status">Unable to load the Cleanreads rating.</p>';
 				}
 			});
 		}
